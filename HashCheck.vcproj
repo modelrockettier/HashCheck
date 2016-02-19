@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="9.00"
 	Name="HashCheck"
 	ProjectGUID="{DCAD938F-9032-4AF9-BA67-8C0CF309D986}"
+	RootNamespace="HashCheck"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -13,135 +15,616 @@
 			Name="x64"
 		/>
 	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
 	<Configurations>
 		<Configuration
-			Name="Release|Win32"
-			OutputDirectory="bin.x86-32"
-			IntermediateDirectory="obj.x86-32"
+			Name="URelease|Win32"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="1"
-				InlineFunctionExpansion="1"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_UNICODE;UNICODE;_USRDLL;_WIN32_WINNT=0x0501;SL_ENABLE_LGBLK;SL_SMBLK_SIZE=0x1000"
+				Optimization="2"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				PreprocessorDefinitions="NDEBUG;UNICODE;_UNICODE;_WINDOWS;_USRDLL;TARGETNAME=\&quot;$(TargetName)\&quot;"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
+				UsePrecompiledHeader="2"
 				WarningLevel="3"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG;_M_IX86"
+				PreprocessorDefinitions="USE_ABC;NDEBUG;UNICODE;TARGETNAME=\&quot;$(TargetName)\&quot;"
 				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
 			/>
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/SUBSYSTEM:WINDOWS,5.1 /OSVERSION:5.1"
-				AdditionalDependencies="shlwapi.lib comctl32.lib uxtheme.lib winhash.lib qsort_s_uptr.lib"
-				AdditionalLibraryDirectories="libs\x86-32"
-				GenerateManifest="false"
+				LinkIncremental="1"
+				AdditionalLibraryDirectories=""
 				ModuleDefinitionFile="HashCheck.def"
+				GenerateDebugInformation="true"
 				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
 				SetChecksum="true"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 		<Configuration
-			Name="Release|x64"
-			OutputDirectory="bin.x86-64"
-			IntermediateDirectory="obj.x86-64"
+			Name="URelease|x64"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="1"
-				InlineFunctionExpansion="1"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_UNICODE;UNICODE;_USRDLL;_WIN32_WINNT=0x0502;SL_ENABLE_LGBLK;SL_SMBLK_SIZE=0x1000"
+				Optimization="2"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				PreprocessorDefinitions="WIN64;NDEBUG;UNICODE;_UNICODE;_WINDOWS;_USRDLL;TARGETNAME=\&quot;$(TargetName)\&quot;"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
+				UsePrecompiledHeader="2"
 				WarningLevel="3"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG;_M_AMD64"
+				PreprocessorDefinitions="USE_ABC;WIN64;NDEBUG;UNICODE;TARGETNAME=\&quot;$(TargetName)\&quot;"
 				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
 			/>
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/SUBSYSTEM:WINDOWS,5.2 /OSVERSION:5.2"
-				AdditionalDependencies="shlwapi.lib comctl32.lib uxtheme.lib winhash.lib qsort_s_uptr.lib"
-				AdditionalLibraryDirectories="libs\x86-64"
-				GenerateManifest="false"
+				LinkIncremental="1"
+				AdditionalLibraryDirectories=""
 				ModuleDefinitionFile="HashCheck.def"
+				GenerateDebugInformation="true"
 				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
 				SetChecksum="true"
+				TargetMachine="17"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="UDebug|Win32"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="2"
+			CharacterSet="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				PreprocessorDefinitions="_DEBUG;UNICODE;_UNICODE;_WINDOWS;_USRDLL;TARGETNAME=\&quot;$(TargetName)\&quot;"
+				StringPooling="true"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="1"
+				EnableFunctionLevelLinking="true"
+				UsePrecompiledHeader="2"
+				WarningLevel="3"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="USE_ABC;_DEBUG;UNICODE;TARGETNAME=\&quot;$(TargetName)\&quot;"
+				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalOptions="/SUBSYSTEM:WINDOWS,5.1 /OSVERSION:5.1"
+				LinkIncremental="1"
+				AdditionalLibraryDirectories=""
+				ModuleDefinitionFile="HashCheck.def"
+				GenerateDebugInformation="true"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="UDebug|x64"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="2"
+			CharacterSet="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				PreprocessorDefinitions="WIN64;_DEBUG;UNICODE;_UNICODE;_WINDOWS;_USRDLL;TARGETNAME=\&quot;$(TargetName)\&quot;"
+				StringPooling="true"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="1"
+				EnableFunctionLevelLinking="true"
+				UsePrecompiledHeader="2"
+				WarningLevel="3"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="USE_ABC;WIN64;_DEBUG;UNICODE;TARGETNAME=\&quot;$(TargetName)\&quot;"
+				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalOptions="/SUBSYSTEM:WINDOWS,5.2 /OSVERSION:5.2"
+				LinkIncremental="1"
+				AdditionalLibraryDirectories=""
+				ModuleDefinitionFile="HashCheck.def"
+				GenerateDebugInformation="true"
+				TargetMachine="17"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 	</Configurations>
+	<References>
+	</References>
 	<Files>
 		<Filter
 			Name="Source Files"
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
-			<File RelativePath="HashCheck.cpp" />
-			<File RelativePath="CHashCheck.cpp" />
-			<File RelativePath="CHashCheckClassFactory.cpp" />
-			<File RelativePath="HashCheckCommon.c" />
-			<File RelativePath="HashCalc.c" />
-			<File RelativePath="HashSave.c" />
-			<File RelativePath="HashProp.c" />
-			<File RelativePath="HashVerify.c" />
-			<File RelativePath="HashCheckOptions.c" />
-			<File RelativePath="RegHelpers.c" />
-			<File RelativePath="SetAppID.c" />
-			<File RelativePath="UnicodeHelpers.c" />
-			<File RelativePath="HashCheck.def" />
+			<File
+				RelativePath="CHashCheck.cpp"
+				>
+			</File>
+			<File
+				RelativePath="CHashCheckClassFactory.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\COvSeqFile.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\HashCalc.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\HashCheckCommon.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\HashCheckOptions.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\RegHelpers.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\SetAppID.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\UnicodeHelpers.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl"
 			>
-			<File RelativePath="CHashCheck.hpp" />
-			<File RelativePath="CHashCheckClassFactory.hpp" />
-			<File RelativePath="HashCheckUI.h" />
-			<File RelativePath="HashCheckCommon.h" />
-			<File RelativePath="HashCalc.h" />
-			<File RelativePath="HashCheckOptions.h" />
-			<File RelativePath="GetHighMSB.h" />
-			<File RelativePath="RegHelpers.h" />
-			<File RelativePath="SetAppID.h" />
-			<File RelativePath="UnicodeHelpers.h" />
-			<File RelativePath="globals.h" />
-			<File RelativePath="version.h" />
+			<File
+				RelativePath=".\CHashCheck.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CHashCheckClassFactory.h"
+				>
+			</File>
+			<File
+				RelativePath=".\COvSeqFile.h"
+				>
+			</File>
+			<File
+				RelativePath="HashCalc.h"
+				>
+			</File>
+			<File
+				RelativePath="HashCheckCommon.h"
+				>
+			</File>
+			<File
+				RelativePath="HashCheckOptions.h"
+				>
+			</File>
+			<File
+				RelativePath="RegHelpers.h"
+				>
+			</File>
+			<File
+				RelativePath="SetAppID.h"
+				>
+			</File>
+			<File
+				RelativePath="UnicodeHelpers.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
-			<File RelativePath="HashCheck.rc" />
+			<File
+				RelativePath="HashCheck.def"
+				>
+			</File>
+			<File
+				RelativePath="HashCheck.rc"
+				>
+			</File>
+			<File
+				RelativePath=".\HashCheckResources.h"
+				>
+			</File>
+			<File
+				RelativePath=".\HashCheckTranslations.h"
+				>
+			</File>
+			<File
+				RelativePath=".\HashCheckTranslations.rc"
+				>
+				<FileConfiguration
+					Name="URelease|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCResourceCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="URelease|x64"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCResourceCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="UDebug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCResourceCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="UDebug|x64"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCResourceCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Libraries"
-			Filter=""
 			>
-			<File RelativePath="libs\WinIntrinsics.h" />
-			<File RelativePath="libs\SimpleString.h" />
-			<File RelativePath="libs\SimpleString.c" />
-			<File RelativePath="libs\SimpleList.h" />
-			<File RelativePath="libs\SimpleList.c" />
-			<File RelativePath="libs\SwapIntrinsics.h" />
-			<File RelativePath="libs\SwapIntrinsics.c" />
-			<File RelativePath="libs\IsFontAvailable.h" />
-			<File RelativePath="libs\IsFontAvailable.c" />
-			<File RelativePath="libs\WinHash.h" />
-			<File RelativePath="libs\WinHash.c" />
-			<File RelativePath="libs\Wow64.h" />
-			<File RelativePath="libs\Wow64.c" />
+			<File
+				RelativePath=".\libs\crc16tab.h"
+				>
+			</File>
+			<File
+				RelativePath=".\libs\crc32tab.h"
+				>
+			</File>
+			<File
+				RelativePath="libs\SwapIntrinsics.h"
+				>
+			</File>
+			<Filter
+				Name="Header Files"
+				>
+				<File
+					RelativePath=".\libs\crc32.h"
+					>
+				</File>
+				<File
+					RelativePath="libs\IsFontAvailable.h"
+					>
+				</File>
+				<File
+					RelativePath="libs\SimpleList.h"
+					>
+				</File>
+				<File
+					RelativePath="libs\SimpleString.h"
+					>
+				</File>
+				<File
+					RelativePath="libs\WinHash.h"
+					>
+				</File>
+				<File
+					RelativePath="libs\Wow64.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Source Files"
+				>
+				<File
+					RelativePath=".\libs\crc32.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libs\IsFontAvailable.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libs\SimpleList.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libs\SimpleString.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libs\WinHash.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libs\Wow64.cpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
+		<File
+			RelativePath=".\dbgtrace.h"
+			>
+		</File>
+		<File
+			RelativePath=".\debug64.h"
+			>
+		</File>
+		<File
+			RelativePath="HashCheck.cpp"
+			>
+		</File>
+		<File
+			RelativePath="HashCheckUI.h"
+			>
+		</File>
+		<File
+			RelativePath=".\HashProp.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\HashSave.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\HashVerify.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\product.h"
+			>
+		</File>
+		<File
+			RelativePath=".\stdafx.cpp"
+			>
+			<FileConfiguration
+				Name="URelease|Win32"
+				>
+				<Tool
+					Name="VCCLCompilerTool"
+					UsePrecompiledHeader="1"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="URelease|x64"
+				>
+				<Tool
+					Name="VCCLCompilerTool"
+					UsePrecompiledHeader="1"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="UDebug|Win32"
+				>
+				<Tool
+					Name="VCCLCompilerTool"
+					UsePrecompiledHeader="1"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="UDebug|x64"
+				>
+				<Tool
+					Name="VCCLCompilerTool"
+					UsePrecompiledHeader="1"
+				/>
+			</FileConfiguration>
+		</File>
+		<File
+			RelativePath=".\stdafx.h"
+			>
+		</File>
+		<File
+			RelativePath="version.h"
+			>
+		</File>
 	</Files>
+	<Globals>
+	</Globals>
 </VisualStudioProject>

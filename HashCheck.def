@@ -2,10 +2,9 @@
 LIBRARY HashCheck BASE=0x1F010000
 
 EXPORTS
-	DllCanUnloadNow     PRIVATE
-	DllGetClassObject   PRIVATE
-	DllRegisterServer   PRIVATE
-	DllUnregisterServer PRIVATE
-	DllInstall          PRIVATE
-	HashVerify_RunDLLW  PRIVATE
-	ShowOptions_RunDLLW PRIVATE
+   DllCanUnloadNow     PRIVATE
+   DllGetClassObject   PRIVATE
+   DllRegisterServer   PRIVATE
+   DllUnregisterServer PRIVATE
+   DllInstall          PRIVATE
+   HashCheck_VerifyW   PRIVATE

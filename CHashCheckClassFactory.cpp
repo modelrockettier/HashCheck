@@ -6,39 +6,40 @@
  * Please refer to license.txt for details about distribution and modification.
  **/
 
-#include "CHashCheckClassFactory.hpp"
-#include "CHashCheck.hpp"
+#include "stdafx.h"
+#include "CHashCheckClassFactory.h"
+#include "CHashCheck.h"
 
 STDMETHODIMP CHashCheckClassFactory::QueryInterface( REFIID riid, LPVOID *ppv )
 {
-	if (IsEqualIID(riid, IID_IUnknown))
-	{
-		*ppv = this;
-	}
-	else if (IsEqualIID(riid, IID_IClassFactory))
-	{
-		*ppv = (LPCLASSFACTORY)this;
-	}
-	else
-	{
-		*ppv = NULL;
-		return(E_NOINTERFACE);
-	}
+   if (IsEqualIID(riid, IID_IUnknown))
+   {
+      *ppv = this;
+   }
+   else if (IsEqualIID(riid, IID_IClassFactory))
+   {
+      *ppv = (LPCLASSFACTORY)this;
+   }
+   else
+   {
+      *ppv = NULL;
+      return(E_NOINTERFACE);
+   }
 
-	AddRef();
-	return(S_OK);
+   AddRef();
+   return(S_OK);
 }
 
 STDMETHODIMP CHashCheckClassFactory::CreateInstance( LPUNKNOWN pUnkOuter, REFIID riid, LPVOID *ppv )
 {
-	*ppv = NULL;
+   *ppv = NULL;
 
-	if (pUnkOuter) return(CLASS_E_NOAGGREGATION);
+   if (pUnkOuter) return(CLASS_E_NOAGGREGATION);
 
-	LPCHASHCHECK lpHashCheck = new CHashCheck;
-	if (lpHashCheck == NULL) return(E_OUTOFMEMORY);
+   LPCHASHCHECK lpHashCheck = new CHashCheck;
+   if (!lpHashCheck) return(E_OUTOFMEMORY);
 
-	HRESULT hr = lpHashCheck->QueryInterface(riid, ppv);
-	lpHashCheck->Release();
-	return(hr);
+   HRESULT hr = lpHashCheck->QueryInterface(riid, ppv);
+   lpHashCheck->Release();
+   return(hr);
 }

@@ -6,440 +6,849 @@
  * Please refer to license.txt for details about distribution and modification.
  **/
 
-#include "globals.h"
-#include "CHashCheck.hpp"
-#include "CHashCheckClassFactory.hpp"
-#include "RegHelpers.h"
-#include "libs\Wow64.h"
-
-// Bookkeeping globals (declared as extern in globals.h)
-HMODULE g_hModThisDll;
-CREF g_cRefThisDll;
-
-// Activation context cache (declared as extern in globals.h)
-volatile BOOL g_bActCtxCreated;
-HANDLE g_hActCtx;
-
-// Major and minor Windows version (declared as extern in globals.h)
-UINT16 g_uWinVer;
-
-// File extensions to associate with
-static const LPCTSTR ASSOCIATIONS[] =
-{
-	TEXT(".sfv"),
-	TEXT(".md4"),
-	TEXT(".md5"),
-	TEXT(".sha1")
-};
-
-// Prototypes for the self-registration/install/uninstall helper functions
-STDAPI DllRegisterServerEx( LPCTSTR );
-HRESULT Install( BOOL );
-HRESULT Uninstall( );
-BOOL WINAPI InstallFile( LPCTSTR, LPTSTR, LPTSTR );
-
+#include "stdafx.h"
+#include "HashCheckOptions.h"
 
 #if defined(_USRDLL) && defined(_DLL)
-#pragma comment(linker, "/entry:DllMain")
+  #pragma comment( linker, "/entry:DllMain" )
 #endif
-extern "C" BOOL WINAPI DllMain( HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved )
+
+///////////////////////////////////////////////////////////////////////////////
+//
+//                  "DllMain" is our DLL's entry-point
+//
+///////////////////////////////////////////////////////////////////////////////
+
+BOOL WINAPI DllMain( HINSTANCE hInstance, DWORD dwReason, void* pReserved )
 {
-	switch (dwReason)
-	{
-		case DLL_PROCESS_ATTACH:
-			g_hModThisDll = hInstance;
-			g_cRefThisDll = 0;
-			g_bActCtxCreated = FALSE;
-			g_hActCtx = INVALID_HANDLE_VALUE;
-			g_uWinVer = SwapV16(LOWORD(GetVersion()));
-			#ifndef _WIN64
-			if (g_uWinVer < 0x0501) return(FALSE);
-			#endif
-			#ifdef _DLL
-			DisableThreadLibraryCalls(hInstance);
-			#endif
-			break;
+    if (DLL_PROCESS_ATTACH == dwReason)
+    {
+#ifdef _DLL
+        DisableThreadLibraryCalls( hInstance );
+#endif
+        return InitializeDll( hInstance );
+    }
 
-		case DLL_PROCESS_DETACH:
-			if (g_bActCtxCreated && g_hActCtx != INVALID_HANDLE_VALUE)
-				ReleaseActCtx(g_hActCtx);
-			break;
+    if (DLL_PROCESS_DETACH == dwReason)
+    {
+        if (1
+            && g_bActCtxCreated
+            && INVALID_HANDLE_VALUE != g_hActCtx
+        )
+            ReleaseActCtx( g_hActCtx );
 
-		case DLL_THREAD_ATTACH:
-			break;
+        return TRUE;
+    }
 
-		case DLL_THREAD_DETACH:
-			break;
-	}
-
-	return(TRUE);
+    return TRUE;
 }
 
-STDAPI DllCanUnloadNow( )
+///////////////////////////////////////////////////////////////////////////////
+// Required entry-point: Check whether or not our DLL may be safely unloaded.
+
+STDAPI DllCanUnloadNow()
 {
-	return((g_cRefThisDll == 0) ? S_OK : S_FALSE);
+    LONG cRef = CurrentDllReference();      // (grab a non-volatile copy)
+    HRESULT hr = (0 == cRef) ? S_OK         // (if no refs, OK to unload)
+                             : S_FALSE;     // (else must NOT unload yet)
+
+    HCTRACE( _T("cRef = %d, hr = %s\n"), cRef, HResultMessage( hr ));
+    return hr;
 }
 
-STDAPI DllGetClassObject( REFCLSID rclsid, REFIID riid, LPVOID *ppv )
+///////////////////////////////////////////////////////////////////////////////
+// Required entry-point: Returns the class factory.
+
+STDAPI DllGetClassObject( REFCLSID rclsid, REFIID riid, LPVOID* ppv )
 {
-	*ppv = NULL;
+    HRESULT hr = CLASS_E_CLASSNOTAVAILABLE;
+    *ppv = NULL;
 
-	if (IsEqualIID(rclsid, CLSID_HashCheck))
-	{
-		LPCHASHCHECKCLASSFACTORY lpHashCheckClassFactory = new CHashCheckClassFactory;
-		if (lpHashCheckClassFactory == NULL) return(E_OUTOFMEMORY);
+    if (IsEqualIID( rclsid, PRODUCT_CLSID_GUID ))
+    {
+        CHashCheckClassFactory*  pHashCheckClassFactory  = new CHashCheckClassFactory;
 
-		HRESULT hr = lpHashCheckClassFactory->QueryInterface(riid, ppv);
-		lpHashCheckClassFactory->Release();
-		return(hr);
-	}
+        if (pHashCheckClassFactory)
+        {
+            hr = pHashCheckClassFactory->QueryInterface( riid, ppv );
+            pHashCheckClassFactory->Release();
+        }
+        else
+            hr = E_OUTOFMEMORY;
+    }
 
-	return(CLASS_E_CLASSNOTAVAILABLE);
+    HCTRACE(_T("hr = %s\n"), HResultMessage( hr ));
+    return hr;
 }
 
-STDAPI DllRegisterServerEx( LPCTSTR lpszModuleName )
+///////////////////////////////////////////////////////////////////////////////
+// Check to make sure we're running elevated
+
+static bool RunningElevated()
 {
-	HKEY hKey;
-	TCHAR szBuffer[MAX_PATH << 1];
+    bool bElevated = false;
+    HANDLE hToken = NULL;
 
-	// Register class
-	if (hKey = RegOpen(HKEY_CLASSES_ROOT, TEXT("CLSID\\%s"), CLSID_STR_HashCheck))
-	{
-		RegSetSZ(hKey, NULL, CLSNAME_STR_HashCheck);
-		RegCloseKey(hKey);
-	} else return(SELFREG_E_CLASS);
+    if (OpenProcessToken( GetCurrentProcess(), TOKEN_QUERY, &hToken ))
+    {
+        TOKEN_ELEVATION        tkElevation;
+        DWORD cbSize = sizeof( tkElevation );
 
-	if (hKey = RegOpen(HKEY_CLASSES_ROOT, TEXT("CLSID\\%s\\InprocServer32"), CLSID_STR_HashCheck))
-	{
-		RegSetSZ(hKey, NULL, lpszModuleName);
-		RegSetSZ(hKey, TEXT("ThreadingModel"), TEXT("Apartment"));
-		RegCloseKey(hKey);
-	} else return(SELFREG_E_CLASS);
+        if (GetTokenInformation( hToken, TokenElevation, &tkElevation, cbSize, &cbSize ))
+            bElevated = tkElevation.TokenIsElevated ? true : false;
+    }
 
-	// Register context menu handler
-	if (hKey = RegOpen(HKEY_CLASSES_ROOT, TEXT("AllFileSystemObjects\\ShellEx\\ContextMenuHandlers\\%s"), CLSNAME_STR_HashCheck))
-	{
-		RegSetSZ(hKey, NULL, CLSID_STR_HashCheck);
-		RegCloseKey(hKey);
-	} else return(SELFREG_E_CLASS);
+    if (hToken)
+        CloseHandle( hToken );
 
-	// Register property sheet handler
-	if (hKey = RegOpen(HKEY_CLASSES_ROOT, TEXT("AllFileSystemObjects\\ShellEx\\PropertySheetHandlers\\%s"), CLSNAME_STR_HashCheck))
-	{
-		RegSetSZ(hKey, NULL, CLSID_STR_HashCheck);
-		RegCloseKey(hKey);
-	} else return(SELFREG_E_CLASS);
+    if (!bElevated)
+    {
+        // "The requested operation requires elevation." (in their own language)
+        CString strErrMsg = FormatLastError( ERROR_ELEVATION_REQUIRED );
+        MessageBox( NULL, strErrMsg, NULL, MB_OK | MB_ICONERROR );
+    }
 
-	// Register the HashCheck program ID
-	if (hKey = RegOpen(HKEY_CLASSES_ROOT, PROGID_STR_HashCheck, NULL))
-	{
-		LoadString(g_hModThisDll, IDS_FILETYPE_DESC, szBuffer, countof(szBuffer));
-		RegSetSZ(hKey, NULL, szBuffer);
-
-		wnsprintf(szBuffer, countof(szBuffer), TEXT("@\"%s\",-%u"), lpszModuleName, IDS_FILETYPE_DESC);
-		RegSetSZ(hKey, TEXT("FriendlyTypeName"), szBuffer);
-
-		RegSetSZ(hKey, TEXT("AlwaysShowExt"), TEXT(""));
-		RegSetSZ(hKey, TEXT("AppUserModelID"), APP_USER_MODEL_ID);
-
-		RegCloseKey(hKey);
-	} else return(SELFREG_E_CLASS);
-
-	if (hKey = RegOpen(HKEY_CLASSES_ROOT, TEXT("%s\\DefaultIcon"), PROGID_STR_HashCheck))
-	{
-		wnsprintf(szBuffer, countof(szBuffer), TEXT("%s,-%u"), lpszModuleName, IDI_FILETYPE);
-		RegSetSZ(hKey, NULL, szBuffer);
-		RegCloseKey(hKey);
-	} else return(SELFREG_E_CLASS);
-
-	if (hKey = RegOpen(HKEY_CLASSES_ROOT, TEXT("%s\\shell\\open\\DropTarget"), PROGID_STR_HashCheck))
-	{
-		// The DropTarget will be the primary way in which we are invoked
-		RegSetSZ(hKey, TEXT("CLSID"), CLSID_STR_HashCheck);
-		RegCloseKey(hKey);
-	} else return(SELFREG_E_CLASS);
-
-	if (hKey = RegOpen(HKEY_CLASSES_ROOT, TEXT("%s\\shell\\open\\command"), PROGID_STR_HashCheck))
-	{
-		// This is a legacy fallback used only when DropTarget is unsupported
-		wnsprintf(szBuffer, countof(szBuffer), TEXT("rundll32.exe \"%s\",HashVerify_RunDLL %%1"), lpszModuleName, IDS_FILETYPE_DESC);
-		RegSetSZ(hKey, NULL, szBuffer);
-		RegCloseKey(hKey);
-	} else return(SELFREG_E_CLASS);
-
-	if (hKey = RegOpen(HKEY_CLASSES_ROOT, TEXT("%s\\shell\\edit\\command"), PROGID_STR_HashCheck))
-	{
-		RegSetSZ(hKey, NULL, TEXT("notepad.exe %1"));
-		RegCloseKey(hKey);
-	} else return(SELFREG_E_CLASS);
-
-	if (hKey = RegOpen(HKEY_CLASSES_ROOT, TEXT("%s\\shell"), PROGID_STR_HashCheck))
-	{
-		RegSetSZ(hKey, NULL, TEXT("open"));
-		RegCloseKey(hKey);
-	} else return(SELFREG_E_CLASS);
-
-	// The actual association of .sfv/.md4/.md5/.sha1 files with our program ID
-	// will be handled by DllInstall, not DllRegisterServer.
-
-	// Register approval
-	if (hKey = RegOpen(HKEY_LOCAL_MACHINE, TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Approved"), NULL))
-	{
-		RegSetSZ(hKey, CLSID_STR_HashCheck, CLSNAME_STR_HashCheck);
-		RegCloseKey(hKey);
-	}
-
-	return(S_OK);
+    return bElevated;
 }
 
-STDAPI DllRegisterServer( )
+///////////////////////////////////////////////////////////////////////////////
+
+static bool RegisterHCClass()
 {
-	TCHAR szCurrentDllPath[MAX_PATH << 1];
-	GetModuleFileName(g_hModThisDll, szCurrentDllPath, countof(szCurrentDllPath));
-	return(DllRegisterServerEx(szCurrentDllPath));
+    HKEY     hKey;
+    bool     bSuccess;
+    CString  strProductCLSIDKey;
+    CString  strFullPathDll = FullPathDll();
+
+    strProductCLSIDKey.Format( _T("CLSID\\%s"), PRODUCT_CLSID );
+
+    if (!(hKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, strProductCLSIDKey )))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+
+    bSuccess = HCRegPutString( hKey, NULL, PRODUCT_DESC );
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegPutString );
+    RegCloseKey( hKey );
+
+    if (bSuccess)
+    {
+        CString  strProductServer32Key  = strProductCLSIDKey + _T("\\InprocServer32");
+
+        if (!(hKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, strProductServer32Key )))
+        {
+            APIFAILEDMSG( HCRegCreateOpen );
+            return false;
+        }
+
+        bSuccess =
+        (1
+            && HCRegPutString( hKey,          NULL,         strFullPathDll )
+            && HCRegPutString( hKey, _T("ThreadingModel"), _T("Apartment") )
+        );
+        if (!bSuccess)
+            APIFAILEDMSG( HCRegPutString );
+        RegCloseKey( hKey );
+    }
+
+    return bSuccess;
 }
 
-STDAPI DllUnregisterServer( )
+//-----------------------------------------------------------------------------
+
+static bool UnRegisterHCClass()
 {
-	HKEY hKey;
-	BOOL bClassRemoved = TRUE;
-	BOOL bApprovalRemoved = FALSE;
-
-	// Unregister class
-	if (!RegDelete(HKEY_CLASSES_ROOT, TEXT("CLSID\\%s"), CLSID_STR_HashCheck))
-		bClassRemoved = FALSE;
-
-	// Unregister handlers
-	if (!Wow64CheckProcess())
-	{
-		/**
-		 * Registry reflection sucks; it means that if we try to unregister the
-		 * Wow64 extension, we'll also unregister the Win64 extension; the API
-		 * to disable reflection seems to only affect changes in value, not key
-		 * removals. :( This hack will disable the deletion of certain HKCR
-		 * keys in the case of 32-on-64, and it should be pretty safe--unless
-		 * the user had installed only the 32-bit extension without the 64-bit
-		 * extension on Win64 (which should be a very rare scenario), there
-		 * should be no undesirable effects to using this hack.
-		 **/
-
-		if (!RegDelete(HKEY_CLASSES_ROOT, TEXT("AllFileSystemObjects\\ShellEx\\ContextMenuHandlers\\%s"), CLSNAME_STR_HashCheck))
-			bClassRemoved = FALSE;
-
-		if (!RegDelete(HKEY_CLASSES_ROOT, TEXT("AllFileSystemObjects\\ShellEx\\PropertySheetHandlers\\%s"), CLSNAME_STR_HashCheck))
-			bClassRemoved = FALSE;
-
-		if (!RegDelete(HKEY_CLASSES_ROOT, PROGID_STR_HashCheck, NULL))
-			bClassRemoved = FALSE;
-	}
-
-	// Unregister approval
-	if (hKey = RegOpen(HKEY_LOCAL_MACHINE, TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Approved"), NULL))
-	{
-		LONG lResult = RegDeleteValue(hKey, CLSID_STR_HashCheck);
-		bApprovalRemoved = (lResult == ERROR_SUCCESS || lResult == ERROR_FILE_NOT_FOUND);
-		RegCloseKey(hKey);
-	}
-
-	if (!bClassRemoved) return(SELFREG_E_CLASS);
-	if (!bApprovalRemoved) return(S_FALSE);
-
-	return(S_OK);
+    CString  strProductCLSIDKey;
+    strProductCLSIDKey.Format( _T("CLSID\\%s"), PRODUCT_CLSID );
+    bool bSuccess = HCRegDeleteTree( HKEY_CLASSES_ROOT, strProductCLSIDKey );
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegDeleteTree );
+    return bSuccess;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+static bool RegisterHCShellHandlers()
+{
+    bool     bSuccess = true;
+    CString  strOurHandlerKey;
+    HKEY     hOurHandlerKey;
+
+    strOurHandlerKey = _T("AllFileSystemObjects\\ShellEx")
+        _T("\\ContextMenuHandlers\\") PRODUCT_DESC;
+
+    if (!(hOurHandlerKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, strOurHandlerKey )))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+
+    bSuccess = HCRegPutString( hOurHandlerKey, NULL, PRODUCT_CLSID ) && bSuccess;
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegPutString );
+    RegCloseKey( hOurHandlerKey );
+
+    strOurHandlerKey = _T("AllFileSystemObjects\\ShellEx")
+        _T("\\PropertySheetHandlers\\") PRODUCT_DESC;
+
+    if (!(hOurHandlerKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, strOurHandlerKey )))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+
+    bSuccess = HCRegPutString( hOurHandlerKey, NULL, PRODUCT_CLSID ) && bSuccess;
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegPutString );
+    RegCloseKey( hOurHandlerKey );
+
+    return bSuccess;
+}
+
+//-----------------------------------------------------------------------------
+
+static bool UnRegisterHCShellHandlers()
+{
+    bool     bSuccess = true;
+    CString  strAllFileSysObjShellEx  = _T("AllFileSystemObjects\\ShellEx");
+    HKEY     hShellExKey;
+
+    if (!(hShellExKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, strAllFileSysObjShellEx )))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+
+    CString strOurHandlerKey;
+
+    strOurHandlerKey = _T("ContextMenuHandlers") _T("\\") PRODUCT_DESC;
+    bSuccess = HCRegDeleteTree( hShellExKey, strOurHandlerKey ) && bSuccess;
+
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegDeleteTree );
+
+    strOurHandlerKey = _T("PropertySheetHandlers") _T("\\") PRODUCT_DESC;
+    bSuccess = HCRegDeleteTree( hShellExKey, strOurHandlerKey ) && bSuccess;
+
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegDeleteTree );
+
+    RegCloseKey( hShellExKey );
+
+    return bSuccess;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static bool RegisterHCProgramId()
+{
+    bool     bSuccess        = true;
+    CString  strFullPathDll  = FullPathDll();
+    HKEY     hKey;
+
+    // It all starts here:  HKEY_CLASSES_ROOT + "HashCheck" ...
+
+    if (!(hKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, PRODUCT_NAME )))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+
+    CString  strFileTypeDesc;
+    CString  strValue;
+    CString  strAppUserModelId  = APP_USER_MODEL_ID;
+
+    // (retrieve localized description of our file types = "Checksum File")
+
+    if (!strFileTypeDesc.LoadString( g_hModThisDll, IDS_FILETYPE_DESC ))
+    {
+        APIFAILEDMSG( LoadString );
+        RegCloseKey( hKey );
+        return false;
+    }
+
+    bSuccess = HCRegPutString( hKey, NULL, strFileTypeDesc ) && bSuccess;
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegPutString );
+
+    // miscellaneous shell values
+
+    strValue.Format( _T("@\"%s\",-%u"), strFullPathDll, IDS_FILETYPE_DESC );
+
+    bSuccess = HCRegPutString( hKey, _T("FriendlyTypeName"),    strValue     ) && bSuccess;
+    bSuccess = HCRegPutString( hKey, _T("AlwaysShowExt"),        _T("")      ) && bSuccess;
+    bSuccess = HCRegPutString( hKey, _T("AppUserModelID"), strAppUserModelId ) && bSuccess;
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegPutString );
+    RegCloseKey( hKey );
+
+    // default icon for our file types
+
+    if (!(hKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, _T("%s\\DefaultIcon"), PRODUCT_NAME )))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+    strValue.Format( _T("%s,-%u"), strFullPathDll, IDI_FILETYPE );
+    bSuccess = HCRegPutString( hKey, NULL, strValue ) && bSuccess;
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegPutString );
+    RegCloseKey( hKey );
+
+    // default shell command = open
+
+    if (!(hKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, _T("%s\\shell"), PRODUCT_NAME )))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+    bSuccess = HCRegPutString( hKey, NULL, _T("open")) && bSuccess;
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegPutString );
+    RegCloseKey( hKey );
+
+    // DropTarget (CHashCheck::Drop) is the primary manner that we're invoked.
+    // The "HashCheck_VerifyW" function is an alternate legacy entry-point function
+    // that accomplishes the same thing: both call the "HashVerifyThread" passing
+    // it the name of the file whose checksum (hash) is to be verified.
+
+    if (!(hKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, _T("%s\\shell\\open\\DropTarget"), PRODUCT_NAME )))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+    bSuccess = HCRegPutString( hKey, _T("CLSID"), PRODUCT_CLSID ) && bSuccess;
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegPutString );
+    RegCloseKey( hKey );
+
+    // legacy open command in case DropTarget isn't supported
+
+    if (!(hKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, _T("%s\\shell\\open\\command"), PRODUCT_NAME )))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+    strValue.Format( _T("rundll32.exe \"%s\",HashCheck_VerifyW %%1"), strFullPathDll );
+    bSuccess = HCRegPutString( hKey, NULL, strValue ) && bSuccess;
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegPutString );
+    RegCloseKey( hKey );
+
+    // default editor for our file types = notepad
+
+    if (!(hKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, _T("%s\\shell\\edit\\command"), PRODUCT_NAME )))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+    bSuccess = HCRegPutString( hKey, NULL, _T("notepad.exe %1")) && bSuccess;
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegPutString );
+    RegCloseKey( hKey );
+
+    return bSuccess;
+}
+
+//-----------------------------------------------------------------------------
+
+static bool UnRegisterHCProgramId()
+{
+    bool bSuccess = HCRegDeleteTree( HKEY_CLASSES_ROOT, PRODUCT_NAME );
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegDeleteTree );
+    return bSuccess;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Associate our class with our CLSID as an approved shell extension
+
+static bool RegisterHCShellExtensionApproval()
+{
+    HKEY hKey;
+    if (!(hKey = HCRegCreateOpen( HKEY_LOCAL_MACHINE,
+        _T("Software\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Approved"))))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+    bool bSuccess = HCRegPutString( hKey, PRODUCT_CLSID, PRODUCT_DESC );
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegPutString );
+    RegCloseKey( hKey );
+    return bSuccess;
+}
+
+//-----------------------------------------------------------------------------
+
+static bool UnRegisterHCShellExtensionApproval()
+{
+    HKEY hKey;
+    if (!(hKey = HCRegCreateOpen( HKEY_LOCAL_MACHINE,
+        _T("Software\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Approved"))))
+    {
+        APIFAILEDMSG( HCRegCreateOpen );
+        return false;
+    }
+    bool bSuccess = HCRegDeleteValue( hKey, PRODUCT_CLSID );
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegDeleteValue );
+    RegCloseKey( hKey );
+    return bSuccess;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Define our class as the default handler for our supported file extensions
+
+static bool RegisterHCFileExtensions()
+{
+    bool bSuccess = true;
+    HKEY hFileExtKey, hHandlerKey;
+    int i;
+
+    for (i=0; bSuccess && i < _countof( g_szHashExtsTab ); ++i)
+    {
+        if (!(hFileExtKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, g_szHashExtsTab[i] )))
+        {
+            APIFAILEDMSG( HCRegCreateOpen );
+            bSuccess = false;
+        }
+        else
+        {
+            bSuccess = (1
+                && HCRegPutString( hFileExtKey, NULL, PRODUCT_NAME )
+                && HCRegPutString( hFileExtKey, _T("PerceivedType"), _T("text"))
+                && bSuccess
+            );
+            if (!bSuccess)
+                APIFAILEDMSG( HCRegPutString );
+
+            if (!(hHandlerKey = HCRegCreateOpen( hFileExtKey, _T("PersistentHandler"))))
+            {
+                APIFAILEDMSG( HCRegCreateOpen );
+                bSuccess = false;
+            }
+            else
+            {
+                bSuccess = HCRegPutString( hHandlerKey, NULL, PRODUCT_CLSID );
+                if (!bSuccess)
+                    APIFAILEDMSG( HCRegPutString );
+                RegCloseKey( hHandlerKey );
+            }
+
+            RegCloseKey( hFileExtKey );
+        }
+    }
+    return bSuccess;
+}
+
+//-----------------------------------------------------------------------------
+
+static bool UnRegisterHCFileExtensions()
+{
+    bool bSuccess = true;
+    HKEY hFileExtKey;
+    int i;
+
+    for (i=0; i < _countof( g_szHashExtsTab ); ++i)
+    {
+        hFileExtKey = HCRegCreateOpen( HKEY_CLASSES_ROOT, g_szHashExtsTab[i] );
+
+        if (!hFileExtKey)
+        {
+            APIFAILEDMSG( HCRegCreateOpen );
+            bSuccess = false;
+        }
+        else
+        {
+            RegCloseKey( hFileExtKey );
+            if (!HCRegDeleteTree( HKEY_CLASSES_ROOT, g_szHashExtsTab[i] ))
+            {
+                APIFAILEDMSG( HCRegDeleteTree );
+                bSuccess = false;
+            }
+        }
+    }
+    return bSuccess;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Add ourselves to the "Add/Remove Programs" database
+
+static bool RegisterHCARP()
+{
+    CString strHCAddRemovePgmsKey =
+        _T("Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\");
+    strHCAddRemovePgmsKey += PRODUCT_CLSID;
+
+    bool bSuccess = HCRegDeleteTree( HKEY_LOCAL_MACHINE, strHCAddRemovePgmsKey );
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegDeleteTree );
+
+    HKEY hKey = HCRegCreateOpen( HKEY_LOCAL_MACHINE, strHCAddRemovePgmsKey );
+    bSuccess = hKey ? true : false;
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegCreateOpen );
+    else
+    {
+        CString strPublisher   = _T("Kai Liu");
+        CString strURL         = _T("http://code.kliu.org/");
+        CString strHelp        = _T("http://code.kliu.org/hashcheck/");
+        CString strName        = PRODUCT_DESC _T(", ") ARCH_NAME;
+        CString strVersion     = VERSION_STR;
+        CString strFullPathDll = FullPathDll();
+        CString strUninstallerCmdline;
+
+        strUninstallerCmdline.Format( _T("regsvr32.exe /u \"%s\""),
+            strFullPathDll );
+
+        bSuccess = HCRegPutString( hKey, _T("DisplayName"),     strName )               && bSuccess;
+        bSuccess = HCRegPutString( hKey, _T("DisplayVersion"),  strVersion )            && bSuccess;
+        bSuccess = HCRegPutString( hKey, _T("DisplayIcon"),     strFullPathDll )        && bSuccess;
+        bSuccess = HCRegPutString( hKey, _T("Publisher"),       strPublisher )          && bSuccess;
+        bSuccess = HCRegPutString( hKey, _T("HelpLink"),        strHelp )               && bSuccess;
+        bSuccess = HCRegPutString( hKey, _T("URLInfoAbout"),    strURL )                && bSuccess;
+        bSuccess = HCRegPutDWORD(  hKey, _T("NoModify"),        1 )                     && bSuccess;
+        bSuccess = HCRegPutDWORD(  hKey, _T("NoRepair"),        1 )                     && bSuccess;
+        bSuccess = HCRegPutString( hKey, _T("UninstallString"), strUninstallerCmdline ) && bSuccess;
+
+        if (!bSuccess)
+            APIFAILEDMSG( HCRegPutString );
+
+        RegCloseKey( hKey );
+    }
+    return bSuccess;
+}
+
+//-----------------------------------------------------------------------------
+
+static bool UnRegisterHCARP()
+{
+    CString strHCAddRemovePgmsKey =
+        _T("Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\");
+    strHCAddRemovePgmsKey += PRODUCT_CLSID;
+    bool bSuccess = HCRegDeleteTree( HKEY_LOCAL_MACHINE, strHCAddRemovePgmsKey );
+    if (!bSuccess)
+        APIFAILEDMSG( HCRegDeleteTree );
+    return bSuccess;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Extract embedded resource
+
+static bool ExtractEmbeddedResource( UINT nResId, LPCTSTR pszPath )
+{
+    // (load the resource...)
+
+    HRSRC    hSrc;    // handle to resource information
+    HGLOBAL  hRes;    // handle to loaded resource
+    void*    pRes;    // ptr to resource data
+    DWORD    dwSz;    // size of resource data
+
+    if (!(hSrc = FindResource( g_hModThisDll,
+        MAKEINTRESOURCE( nResId ), RT_RCDATA )))
+    {
+        APIFAILEDMSG( FindResource );
+        return false;
+    }
+
+    if (!(hRes = LoadResource( g_hModThisDll, hSrc )))
+    {
+        APIFAILEDMSG( LoadResource );
+        return false;
+    }
+
+    if (!(pRes = LockResource( hRes )))
+    {
+        APIFAILEDMSG( LockResource );
+        return false;
+    }
+
+    if (!(dwSz = SizeofResource( g_hModThisDll, hSrc )))
+    {
+        APIFAILEDMSG( SizeofResource );
+        return false;
+    }
+
+    // (write out the resource...)
+
+    HANDLE hFile = CreateFile
+    (
+        pszPath,
+        GENERIC_WRITE,
+        0,
+        NULL,
+        CREATE_NEW,
+        FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_TEMPORARY,
+        NULL
+    );
+
+    if (INVALID_HANDLE_VALUE == hFile )
+    {
+        APIFAILEDMSG( CreateFile_EXE );
+        return false;
+    }
+
+    DWORD dwWritten;
+
+    if (!WriteFile( hFile, pRes, dwSz, &dwWritten, NULL )
+        || dwWritten != dwSz)
+    {
+        APIFAILEDMSG( WriteFile_EXE );
+        VERIFY( CloseHandle( hFile ));
+        return false;
+    }
+
+    VERIFY( CloseHandle( hFile ));
+    hFile = NULL;
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Hopefully our "RemoveDLL()" function won't take any longer than this.
+
+#define HC_MAX_REMOVEDLL_TIME   1000    // (hopefully long enough!)
+
+///////////////////////////////////////////////////////////////////////////////
+// Notify the shell about our INSTALL.
+// Used by DllRegisterServer.
+
+static bool NotifyShellOfInstall()
+{
+    //  "Applications that register new handlers of any type must call
+    //   SHChangeNotify with the SHCNE_ASSOCCHANGED flag to instruct
+    //   the Shell to invalidate the cache and search for new handlers"
+
+    CoFreeUnusedLibrariesEx( HC_MAX_REMOVEDLL_TIME, 0 );
+    SHChangeNotify( SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL );
+    CoFreeUnusedLibrariesEx( HC_MAX_REMOVEDLL_TIME, 0 );
+    SHChangeNotify( SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL );
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Notify the shell about our UNinstall.
+// Used by DllUnregisterServer.
+
+static bool NotifyShellOfUninstall()
+{
+    CoFreeUnusedLibrariesEx( HC_MAX_REMOVEDLL_TIME, 0 );
+    SHChangeNotify( SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL );
+    CoFreeUnusedLibrariesEx( HC_MAX_REMOVEDLL_TIME, 0 );
+    SHChangeNotify( SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL );
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Remove our DLL from the system.  Used by DllUnregisterServer.
+
+static bool RemoveDLL()
+{
+    bool bSuccess = true;
+
+    CPath  strFullPathDll  = FullPathDll();
+    CPath  strTempDir      = TempPath( true );
+    CPath  strDllName      = TempName( strTempDir );
+
+    // First, try physically MOVING (not copying!) the DLL
+    // to another directory and then deleting it from there.
+
+    HCTRACE(_T("Move \"%s\" to \"%s\" ...\n"),
+        strFullPathDll, strDllName );
+
+    if (!MoveFileEx( strFullPathDll, strDllName,
+        MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED ))
+    {
+        APIFAILEDMSG( MoveFileEx );
+        return false;
+    }
+
+    // Now delete it from where we moved it to. We do this by extracting
+    // our small utility program which is embedded within ourselves as a
+    // binary resource and using it to refresh the shell and then delete
+    // ourselves afterwards. We invoke it via a small batch program that
+    // we create which not only deletes the utility program too but also
+    // itself when it's done, thereby leaving no leftover crumbs at all.
+    // (At least in theory anyway!)
+
+    CString  strCmdName  = TempName( strTempDir );
+    VERIFY( DeleteFile( strCmdName ));
+    strCmdName += _T(".cmd");
+    HCTRACE(_T("strCmdName = \"%s\"\n"), strCmdName );
+
+    if (!ExtractEmbeddedResource( IDC_EMBEDDED_CMD_RESID, strCmdName ))
+        return false;
+
+    CString  strExeName  = TempName( strTempDir );
+    VERIFY( DeleteFile( strExeName ));
+    strExeName += _T(".exe");
+    HCTRACE(_T("strExeName = \"%s\"\n"), strExeName );
+
+    if (!ExtractEmbeddedResource( IDC_EMBEDDED_EXE_RESID, strExeName ))
+        return false;
+
+    // (execute batch file...)
+
+    CString  strCmdLine;
+    strCmdLine.Format(_T("\"%s\" \"%s\" \"%s\" %d"),
+        strCmdName,
+        strExeName,
+        strDllName,
+        HC_MAX_REMOVEDLL_TIME );
+    HCTRACE(_T("strCmdLine = %s\n"), strCmdLine );
+
+    STARTUPINFO          si  =  { sizeof( si ), 0 };
+    PROCESS_INFORMATION  pi  =  {0};
+
+    si.dwFlags     = STARTF_USESHOWWINDOW;  // (hidden)
+    si.wShowWindow = SW_HIDE;               // (hidden)
+
+    // PROGRAMMING NOTE: the documentation for CreateProcess states that
+    // the command-line is modified and thus needs to point to writable
+    // storage (i.e. it can't be LPCTSTR, it must be LPTSTR). To be safe
+    // (since it will be modified) we also include some extra space too.
+
+    strCmdLine += _T("        ");
+    LPTSTR  pszCmdLine  = strCmdLine.GetBuffer( strCmdLine.GetLength() + 8 );
+
+    if (!CreateProcess( 0, pszCmdLine, 0, 0, 0, 0, 0, 0, &si, &pi ))
+    {
+        APIFAILEDMSG( CreateProcess );
+        return false;
+    }
+
+    CloseHandle( pi.hProcess );
+    CloseHandle( pi.hThread );
+    strCmdLine.ReleaseBuffer();
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// DllRegisterServer/DllUnregisterServer helper macro and function to
+// log the success/failure of each register/unregister function called.
+// (Note: we test 'bSuccess' first to abort further processing.)
+
+#define REGUNREGCALL( FUNC ) \
+    (bSuccess && (bSuccess = HCLogRegUnregFunc( &FUNC, _T(#FUNC))))
+
+typedef bool HCREGUNREGFUNC();
+
+static bool HCLogRegUnregFunc( HCREGUNREGFUNC* pfn, LPCTSTR pszFunc )
+{
+    register bool bSuccess = pfn();
+    TRACE( _T("*** %s : %s : %s\n"), _T(TARGETNAME), pszFunc,
+        bSuccess ? _T("Success.") : _T("FAILED!") );
+    return bSuccess;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Required entry-point: INSTALL our shell extension.
+
+STDAPI DllRegisterServer()
+{
+    // PROGRAMMING NOTE: it's important to add the "Add/Remove Programs"
+    // registry entries FIRST in case anything goes wrong later on. That
+    // way if something does go wrong, the user at least has the chance
+    // of trying to "Undo" (backout) whatever changes did happen to have
+    // been made during their attempt by simply performing an uninstall.
+
+    bool bSuccess = true;   // (needed by REGUNREGCALL)
+
+    HRESULT hr =
+    (1
+        && REGUNREGCALL( RunningElevated )
+        && REGUNREGCALL( RegisterHCARP )
+        && REGUNREGCALL( RegisterHCClass )
+        && REGUNREGCALL( RegisterHCProgramId )
+        && REGUNREGCALL( RegisterHCShellHandlers )
+        && REGUNREGCALL( RegisterHCShellExtensionApproval )
+        && REGUNREGCALL( RegisterHCFileExtensions )
+        && REGUNREGCALL( NotifyShellOfInstall )
+    )
+    ? S_OK                  // (success)
+    : SELFREG_E_CLASS;      // (failure)
+
+    HCTRACE(_T("hr = %s\n\n"), HResultMessage( hr ));
+    return hr;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Required entry-point: UNINSTALL our shell extension.
+
+STDAPI DllUnregisterServer()
+{
+    // PROGRAMMING NOTE: it's important to remove the "Add/Remove Programs"
+    // registry entries LAST in case anything goes wrong during the process.
+    // Then if something does happen to go wrong, the user can then at least
+    // retry their uninstall attempt again because the "Add/Remove Programs"
+    // registry entries would therefore still exist.
+
+    bool bSuccess = true;   // (needed by REGUNREGCALL)
+
+    HRESULT hr =
+    (1
+        && REGUNREGCALL( RunningElevated )
+        && REGUNREGCALL( UnRegisterHCFileExtensions )
+        && REGUNREGCALL( UnRegisterHCProgramId )
+        && REGUNREGCALL( UnRegisterHCShellHandlers )
+        && REGUNREGCALL( UnRegisterHCShellExtensionApproval )
+        && REGUNREGCALL( UnRegisterHCClass )
+        && REGUNREGCALL( OptionsDelete )
+        && REGUNREGCALL( UnRegisterHCARP )
+        && REGUNREGCALL( NotifyShellOfUninstall )
+        && REGUNREGCALL( RemoveDLL )
+    )
+    ? S_OK                  // (success)
+    : SELFREG_E_CLASS;      // (failure)
+
+    HCTRACE(_T("hr = %s\n\n"), HResultMessage( hr ));
+    return hr;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Required entry-point: Install/Uninstall our shell extension.
 
 STDAPI DllInstall( BOOL bInstall, LPCWSTR pszCmdLine )
 {
-	// To install with bCopyFile=true
-	// regsvr32.exe /i /n HashCheck.dll
-	//
-	// To install with bCopyFile=false
-	// regsvr32.exe /i:"NoCopy" /n HashCheck.dll
-	//
-	// To uninstall
-	// regsvr32.exe /u /i /n HashCheck.dll
-	//
-	// DllInstall can also be invoked from a RegisterDlls INF section or from
-	// a UnregisterDlls INF section, if the registration flags are set to 2.
-	// Consult the documentation for RegisterDlls/UnregisterDlls for details.
+    //---------------------------------------------------------------
+    //                        HashCheck
+    //---------------------------------------------------------------
+    //
+    // To install:
+    //
+    //    1. Copy DLL to %SystemRoot%\system32
+    //
+    //    2. Open an ADMINISTRATOR Command Prompt, navigate to the
+    //       %SystemRoot%\system32 directory, and enter the command:
+    //
+    //       regsvr32.exe "%SystemRoot%\system32\HashCheck.dll"
+    //
+    //    3. Logoff and then logon again to restart the shell.
+    //
+    //
+    // To uninstall:
+    //
+    //    1. Open an ADMINISTRATOR Command Prompt, navigate to the
+    //       %SystemRoot%\system32 directory, and enter the command:
+    //
+    //       regsvr32.exe /u "%SystemRoot%\system32\HashCheck.dll"
+    //
+    //    2. Logoff and then logon again to restart the shell.
+    //
+    //
+    // Note: specifying the full path in the regsvr32 command is
+    // TECHNICALLY not necessary, but it's safer since without it,
+    // regsvr32 will load/call the first instance it finds anywhere
+    // in the search PATH which could load/call the wrong DLL.
+    //
+    //---------------------------------------------------------------
 
-	return( (bInstall) ?
-		Install(pszCmdLine == NULL || StrCmpIW(pszCmdLine, L"NoCopy")) :
-		Uninstall()
-	);
+    HRESULT hr = bInstall ? DllRegisterServer() : DllUnregisterServer();
+    HCTRACE(_T("hr = %s\n\n"), HResultMessage( hr ));
+    return hr;
 }
 
-HRESULT Install( BOOL bCopyFile )
-{
-	TCHAR szCurrentDllPath[MAX_PATH << 1];
-	GetModuleFileName(g_hModThisDll, szCurrentDllPath, countof(szCurrentDllPath));
-
-	TCHAR szSysDir[MAX_PATH + 0x20];
-	UINT uSize = GetSystemDirectory(szSysDir, MAX_PATH);
-
-	if (uSize && uSize < MAX_PATH)
-	{
-		LPTSTR lpszPath = szSysDir;
-		LPTSTR lpszPathAppend = lpszPath + uSize;
-
-		if (*(lpszPathAppend - 1) != TEXT('\\'))
-			*lpszPathAppend++ = TEXT('\\');
-
-		LPTSTR lpszTargetPath = (bCopyFile) ? lpszPath : szCurrentDllPath;
-
-		if ( (!bCopyFile || InstallFile(szCurrentDllPath, lpszTargetPath, lpszPathAppend)) &&
-		     DllRegisterServerEx(lpszTargetPath) == S_OK )
-		{
-			HKEY hKey, hKeySub;
-
-			// Associate file extensions
-			for (UINT i = 0; i < countof(ASSOCIATIONS); ++i)
-			{
-				if (hKey = RegOpen(HKEY_CLASSES_ROOT, ASSOCIATIONS[i], NULL))
-				{
-					RegSetSZ(hKey, NULL, PROGID_STR_HashCheck);
-					RegSetSZ(hKey, TEXT("PerceivedType"), TEXT("text"));
-
-					if (hKeySub = RegOpen(hKey, TEXT("PersistentHandler"), NULL))
-					{
-						RegSetSZ(hKeySub, NULL, TEXT("{5e941d80-bf96-11cd-b579-08002b30bfeb}"));
-						RegCloseKey(hKeySub);
-					}
-
-					RegCloseKey(hKey);
-				}
-			}
-
-			// Uninstaller entries
-			RegDelete(HKEY_LOCAL_MACHINE, TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\%s"), CLSNAME_STR_HashCheck);
-
-			if (hKey = RegOpen(HKEY_LOCAL_MACHINE, TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\%s"), CLSNAME_STR_HashCheck))
-			{
-				TCHAR szUninstall[MAX_PATH << 1];
-				wnsprintf(szUninstall, countof(szUninstall), TEXT("regsvr32.exe /u /i /n \"%s\""), lpszTargetPath);
-
-				static const TCHAR szURLFull[] = TEXT("http://code.kliu.org/hashcheck/");
-				TCHAR szURLBase[countof(szURLFull)];
-				SSStaticCpy(szURLBase, szURLFull);
-				szURLBase[21] = 0; // strlen("http://code.kliu.org/")
-
-				RegSetSZ(hKey, TEXT("DisplayIcon"), lpszTargetPath);
-				RegSetSZ(hKey, TEXT("DisplayName"), TEXT(HASHCHECK_NAME_STR) TEXT(ARCH_NAME_TAIL));
-				RegSetSZ(hKey, TEXT("DisplayVersion"), TEXT(HASHCHECK_VERSION_STR));
-				RegSetSZ(hKey, TEXT("HelpLink"), szURLFull);
-				RegSetDW(hKey, TEXT("NoModify"), 1);
-				RegSetDW(hKey, TEXT("NoRepair"), 1);
-				RegSetSZ(hKey, TEXT("Publisher"), TEXT("Kai Liu"));
-				RegSetSZ(hKey, TEXT("UninstallString"), szUninstall);
-				RegSetSZ(hKey, TEXT("URLInfoAbout"), szURLBase);
-				RegCloseKey(hKey);
-			}
-
-			return(S_OK);
-
-		} // if copied & registered
-
-	} // if valid sysdir
-
-	return(E_FAIL);
-}
-
-HRESULT Uninstall( )
-{
-	HRESULT hr = S_OK;
-
-	// Rename the DLL prior to scheduling it for deletion
-	TCHAR szCurrentDllPath[MAX_PATH << 1];
-	TCHAR szTemp[MAX_PATH << 1];
-
-	LPTSTR lpszFileToDelete = szCurrentDllPath;
-	LPTSTR lpszTempAppend = szTemp + GetModuleFileName(g_hModThisDll, szTemp, countof(szTemp));
-
-	memcpy(szCurrentDllPath, szTemp, sizeof(szTemp));
-
-	*lpszTempAppend++ = TEXT('.');
-	SSCpy2Ch(lpszTempAppend, 0, 0);
-
-	for (TCHAR ch = TEXT('0'); ch <= TEXT('9'); ++ch)
-	{
-		*lpszTempAppend = ch;
-
-		if (MoveFileEx(szCurrentDllPath, szTemp, MOVEFILE_REPLACE_EXISTING))
-		{
-			lpszFileToDelete = szTemp;
-			break;
-		}
-	}
-
-	// Schedule the DLL to be deleted at shutdown/reboot
-	if (!MoveFileEx(lpszFileToDelete, NULL, MOVEFILE_DELAY_UNTIL_REBOOT)) hr = E_FAIL;
-
-	// Unregister
-	if (DllUnregisterServer() != S_OK) hr = E_FAIL;
-
-	// Disassociate file extensions; see the comment in DllUnregisterServer for
-	// why this step is skipped for Wow64 processes
-	if (!Wow64CheckProcess())
-	{
-		for (UINT i = 0; i < countof(ASSOCIATIONS); ++i)
-		{
-			HKEY hKey;
-
-			if (hKey = RegOpen(HKEY_CLASSES_ROOT, ASSOCIATIONS[i], NULL))
-			{
-				RegDeleteValue(hKey, NULL);
-				RegCloseKey(hKey);
-			}
-		}
-	}
-
-	// We don't need the uninstall strings any more...
-	RegDelete(HKEY_LOCAL_MACHINE, TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\%s"), CLSNAME_STR_HashCheck);
-
-	return(hr);
-}
-
-BOOL WINAPI InstallFile( LPCTSTR lpszSource, LPTSTR lpszDest, LPTSTR lpszDestAppend )
-{
-	static const TCHAR szShellExt[] = TEXT("ShellExt");
-	static const TCHAR szDestFile[] = TEXT("\\") TEXT(HASHCHECK_FILENAME_STR);
-
-	SSStaticCpy(lpszDestAppend, szShellExt);
-	lpszDestAppend += countof(szShellExt) - 1;
-
-	// Create directory if necessary
-	if (GetFileAttributes(lpszDest) == INVALID_FILE_ATTRIBUTES)
-		CreateDirectory(lpszDest, NULL);
-
-	SSStaticCpy(lpszDestAppend, szDestFile);
-	lpszDestAppend += countof(szDestFile) - 1;
-
-	// No need to copy if the source and destination are the same
-	if (StrCmpI(lpszSource, lpszDest) == 0)
-		return(TRUE);
-
-	// If the destination file does not already exist, just copy
-	if (GetFileAttributes(lpszDest) == INVALID_FILE_ATTRIBUTES)
-		return(CopyFile(lpszSource, lpszDest, FALSE));
-
-	// If destination file exists and cannot be overwritten
-	TCHAR szTemp[MAX_PATH + 0x20];
-	SIZE_T cbDest = BYTEDIFF(lpszDestAppend, lpszDest);
-	LPTSTR lpszTempAppend = (LPTSTR)BYTEADD(szTemp, cbDest);
-
-	memcpy(szTemp, lpszDest, cbDest);
-	*lpszTempAppend++ = TEXT('.');
-	SSCpy2Ch(lpszTempAppend, 0, 0);
-
-	for (TCHAR ch = TEXT('0'); ch <= TEXT('9'); ++ch)
-	{
-		if (CopyFile(lpszSource, lpszDest, FALSE))
-			return(TRUE);
-
-		*lpszTempAppend = ch;
-
-		if (MoveFileEx(lpszDest, szTemp, MOVEFILE_REPLACE_EXISTING))
-			MoveFileEx(szTemp, NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
-	}
-
-	return(FALSE);
-}
+///////////////////////////////////////////////////////////////////////////////

@@ -6,25 +6,18 @@
  * Please refer to license.txt for details about distribution and modification.
  **/
 
-#ifndef __REGHELPERS_H__
-#define __REGHELPERS_H__
+#pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+///////////////////////////////////////////////////////////////////////////////
 
-#include <windows.h>
-#include <shlwapi.h>
+HKEY  HCRegCreateOpen  ( HKEY hBaseKey,  LPCTSTR pszSubKey,     LPCTSTR pszSubKeyArg    = NULL );
+bool  HCRegDeleteValue ( HKEY hBaseKey,  LPCTSTR pszValueName,  LPCTSTR pszValueNameArg = NULL );
+bool  HCRegDeleteTree  ( HKEY hTreeBase, LPCTSTR pszTreeSubKey, LPCTSTR pszTreeArg      = NULL );
 
-HKEY WINAPI RegOpen( HKEY, LPCTSTR, LPCTSTR );
-BOOL WINAPI RegDelete( HKEY, LPCTSTR, LPCTSTR );
-BOOL WINAPI RegSetSZ( HKEY, LPCTSTR, LPCTSTR );
-BOOL WINAPI RegSetDW( HKEY, LPCTSTR, DWORD );
-BOOL WINAPI RegGetSZ( HKEY, LPCTSTR, LPTSTR, DWORD );
-BOOL WINAPI RegGetDW( HKEY, LPCTSTR, LPDWORD );
+bool  HCRegPutString   ( HKEY hBaseKey, LPCTSTR pszValueName, LPCTSTR  pszValue );
+bool  HCRegGetString   ( HKEY hBaseKey, LPCTSTR pszValueName, CString& strValue );
 
-#ifdef __cplusplus
-}
-#endif
+bool  HCRegPutDWORD    ( HKEY hBaseKey, LPCTSTR pszValueName, DWORD   dwData );
+bool  HCRegGetDWORD    ( HKEY hBaseKey, LPCTSTR pszValueName, DWORD* pdwData );
 
-#endif
+///////////////////////////////////////////////////////////////////////////////

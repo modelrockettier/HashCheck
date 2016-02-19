@@ -6,47 +6,52 @@
  * Please refer to license.txt for details about distribution and modification.
  **/
 
-// Full name; this will appear in the version info and control panel
-#define HASHCHECK_NAME_STR "HashCheck Shell Extension"
+#pragma once
 
-// Full version: MUST be in the form of major,minor,revision,build
-#define HASHCHECK_VERSION_FULL 2,1,11,1
+#include "targetver.h"      // Minimum supported Windows platform
+#include "debug64.h"        // Normalize build architecture #defines
+                            // (i.e. _WIN32, _WIN64, _32_BIT, _64_BIT)
 
-// String version: May be any suitable string
-#define HASHCHECK_VERSION_STR "2.1.11.1"
+// ----------------------------------------------------------------------------
+// Architecture name strings
+
+#if defined(_DEBUG)
+  #if defined(_64_BIT)
+    #define ARCH_NAME_A             "64-bit DEBUG"
+  #else
+    #define ARCH_NAME_A             "32-bit DEBUG"
+  #endif
+#else // Release
+  #if defined(_64_BIT)
+    #define ARCH_NAME_A             "64-bit"
+  #else
+    #define ARCH_NAME_A             "32-bit"
+  #endif
+#endif
+
+#define ARCH_NAME                   _T(ARCH_NAME_A)
+
+// ----------------------------------------------------------------------------
+// PE version MUST be in the form:      major.minor
 
 #ifdef _USRDLL
-// PE version: MUST be in the form of major.minor
-#pragma comment(linker, "/version:2.1")
+  #pragma comment( linker,    "/version:3.0" )
 #endif
 
-// String used in the "CompanyName" field of the version resource
-#define HASHCHECK_AUTHOR_STR "code.kliu.org"
+// ----------------------------------------------------------------------------
+// String version may be in any format
 
-// Tail portion of the copyright string for the version resource
-#define HASHCHECK_COPYRIGHT_STR "Kai Liu. All rights reserved."
-
-// Name of the DLL
-#define HASHCHECK_FILENAME_STR "HashCheck.dll"
-
-// String used for setup
-#define HASHCHECK_SETUP_STR "HashCheck Shell Extension Setup"
-
-// Architecture names
-#if defined(_M_IX86)
-#define ARCH_NAME_TAIL " (x86-32)"
-#define ARCH_NAME_FULL "x86-32"
-#define ARCH_NAME_PART "x86"
-#elif defined(_M_AMD64) || defined(_M_X64)
-#define ARCH_NAME_TAIL " (x86-64)"
-#define ARCH_NAME_FULL "x86-64"
-#define ARCH_NAME_PART "x64"
-#elif defined(_M_IA64)
-#define ARCH_NAME_TAIL " (IA-64)"
-#define ARCH_NAME_FULL "IA-64"
-#define ARCH_NAME_PART ARCH_NAME_FULL
+#undef       USE_ABC                // (undefine before #defining)
+#define      USE_ABC                // (use AutoBuildCount header)
+#if !defined(USE_ABC)
+  #define VERSION_NUM                    3,0,0,0
+  #define VERSION_STR_A                 "3.0.0.0"
+  #define VERSION_STR               _T( "3.0.0.0" )
 #else
-#define ARCH_NAME_TAIL ""
-#define ARCH_NAME_FULL "Unspecified"
-#define ARCH_NAME_PART ARCH_NAME_FULL
+  #include "AutoBuildCount.h"       // (ABC is where SVNREV is #defined)
+  #define VERSION_NUM                    3,0,0,         SVNREV_NUM
+  #define VERSION_STR_A                 "3.0.0."        SVNREV_STR
+  #define VERSION_STR               _T( "3.0.0." )  _T( SVNREV_STR )
 #endif
+
+// ----------------------------------------------------------------------------

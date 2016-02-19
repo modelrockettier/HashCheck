@@ -6,47 +6,25 @@
  * Please refer to license.txt for details about distribution and modification.
  **/
 
-#ifndef __UNICODEHELPERS_H__
-#define __UNICODEHELPERS_H__
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <windows.h>
-#include "libs\SimpleString.h"
+#pragma once
 
 /**
  * Helper Macros
  * Argument order: source, destination, count (follow the order in the name)
  **/
 
-#define WStrToStrEx(w, a, c, cp) WideCharToMultiByte(cp, 0, w, -1, a, c, NULL, NULL)
-#define StrToWStrEx(a, w, c, cp) MultiByteToWideChar(cp, 0, a, -1, w, c)
+#define AStrToWStr( a, w, c )       MultiByteToWideChar( CP_ACP,  0, a, -1, w, c )
+#define AStrToWStrEx( a, w, c, cp ) MultiByteToWideChar( cp,      0, a, -1, w, c )
 
-#define WStrToAStr(w, a, c)      WideCharToMultiByte(CP_ACP,  0, w, -1, a, c, NULL, NULL)
-#define AStrToWStr(a, w, c)      MultiByteToWideChar(CP_ACP,  0, a, -1, w, c)
-#define WStrToUTF8(w, a, c)      WideCharToMultiByte(CP_UTF8, 0, w, -1, a, c, NULL, NULL)
-#define UTF8ToWStr(a, w, c)      MultiByteToWideChar(CP_UTF8, 0, a, -1, w, c)
-
-#ifdef UNICODE
-#define TStrToAStr               WStrToAStr
-#define AStrToTStr               AStrToWStr
-#define TStrToWStr(t, w, c)      SSCpyW(w, t)
-#define WStrToTStr(w, t, c)      SSCpyW(t, w)
-#else
-#define TStrToAStr(t, a, c)      SSCpyA(a, t)
-#define AStrToTStr(a, t, c)      SSCpyA(t, a)
-#define TStrToWStr               AStrToWStr
-#define WStrToTStr               WStrToAStr
-#endif
+#define WStrToAStr( w, a, c )       WideCharToMultiByte( CP_ACP,  0, w, -1, a, c, NULL, NULL )
+#define WStrToUTF8( w, a, c )       WideCharToMultiByte( CP_UTF8, 0, w, -1, a, c, NULL, NULL )
 
 /**
  * IsTextUnicode definitions
  **/
 
-#define IS_TEXT_UNICODE (IS_TEXT_UNICODE_UNICODE_MASK | IS_TEXT_UNICODE_REVERSE_MASK)
-#define IS_TEXT_BOM (IS_TEXT_UNICODE_SIGNATURE | IS_TEXT_UNICODE_REVERSE_SIGNATURE)
+#define IS_TEXT_UNICODE             (IS_TEXT_UNICODE_UNICODE_MASK | IS_TEXT_UNICODE_REVERSE_MASK)
+#define IS_TEXT_BOM                 (IS_TEXT_UNICODE_SIGNATURE | IS_TEXT_UNICODE_REVERSE_SIGNATURE)
 
 /**
  * IsTextUTF8 - Checks if a string is UTF-8, and if it is, returns a pointer to
@@ -76,9 +54,3 @@ PBYTE __fastcall IsTextUTF8( PBYTE pbData );
  **/
 
 PWSTR __fastcall BufferToWStr( PBYTE *ppbData, DWORD cbData );
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif

@@ -23,12 +23,61 @@
  * Compiler.
  **/
 
-#include <winresrc.h>
-#include "HashCheckResources.h"
+#include "product.h"
 #include "version.h"
+#include "HashCheckResources.h"
+#include <winresrc.h>
 
 // Remove the following line if using UTF-16 instead of UTF-8
 #pragma code_page(65001)
+
+///////////////////////////////////////////////////////////////////////////////
+// Check for required build settings:  the properties for our Visual Studio
+// project should have the value of 'TARGETNAME' being passed to us in its
+// Preprocessor Definitions settings (e.g. TARGETNAME=\"$(TargetName)\")
+
+#ifdef APSTUDIO_INVOKED
+
+  // If they're just trying to EDIT this resource file from within Visual
+  // Studio however, then we have to #define TARGETNAME to some dummy value
+  // to make Visual Studio's resource editor happy.
+
+  #if !defined( TARGETNAME )
+    #define TARGETNAME "HashCheck"
+  #endif
+
+#else
+
+  // Else if they're trying to actually BUILD the project, then TARGETNAME
+  // *MUST* already be #defined. If it's not, then it's a legitimate error.
+
+  #if !defined( TARGETNAME )
+    #error TARGETNAME undefined. Check your project''s Preprocessor Definitions.
+  #endif
+
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+// Custom resources
+
+//   Resource ID             type      filename
+IDC_EMBEDDED_CMD_RESID      RCDATA   "_Uninstaller\\_Uninstaller.cmd"
+
+#if defined(_DEBUG)
+  #if defined(_64_BIT)
+    IDC_EMBEDDED_EXE_RESID  RCDATA   "_Uninstaller\\x64\\UDebug\\_Uninstaller.exe"
+  #else
+    IDC_EMBEDDED_EXE_RESID  RCDATA   "_Uninstaller\\Win32\\UDebug\\_Uninstaller.exe"
+  #endif
+#else // Release
+  #if defined(_64_BIT)
+    IDC_EMBEDDED_EXE_RESID  RCDATA   "_Uninstaller\\x64\\URelease\\_Uninstaller.exe"
+  #else
+    IDC_EMBEDDED_EXE_RESID  RCDATA   "_Uninstaller\\Win32\\URelease\\_Uninstaller.exe"
+  #endif
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
 
 #ifdef _DEBUG
 #define MY_VS_FF_DEBUG VS_FF_DEBUG
@@ -39,29 +88,32 @@
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 VS_VERSION_INFO     VERSIONINFO
-    FILEVERSION     HASHCHECK_VERSION_FULL
-    PRODUCTVERSION  HASHCHECK_VERSION_FULL
+    FILEVERSION     VERSION_NUM
+    PRODUCTVERSION  VERSION_NUM
     FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
     FILEFLAGS       MY_VS_FF_DEBUG
     FILEOS          VOS_NT_WINDOWS32
     FILETYPE        VFT_DLL
     FILESUBTYPE     VFT2_UNKNOWN
 {
-	BLOCK "StringFileInfo"
-	{
-		BLOCK "040904b0" // English (U.S.)
-		{
-			VALUE "CompanyName", HASHCHECK_AUTHOR_STR
-			VALUE "FileDescription", HASHCHECK_NAME_STR
-			VALUE "FileVersion", HASHCHECK_VERSION_STR ARCH_NAME_TAIL
-			VALUE "LegalCopyright", "Copyright © " HASHCHECK_COPYRIGHT_STR
-			VALUE "OriginalFilename", HASHCHECK_FILENAME_STR
-		}
-	}
-	BLOCK "VarFileInfo"
-	{
-		VALUE "Translation", 0x0409, 0x04b0 // English (U.S.)
-	}
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904B0"                    // (English, Unicode)
+        {
+            VALUE  "Comment",           PRODUCT_COMMENT_A                "\0"
+            VALUE  "CompanyName",       COMPANY_A                        "\0"
+            VALUE  "FileDescription",   PRODUCT_DESC_A                   "\0"
+            VALUE  "FileVersion",       VERSION_STR_A                    "\0"
+            VALUE  "LegalCopyright",    COPYRIGHT_YEAR_A    COMPANY_A    "\0"
+            VALUE  "OriginalFilename",  TARGETNAME ".dll"                "\0"
+            VALUE  "ProductName",       PRODUCT_NAME_A                   "\0"
+            VALUE  "ProductVersion",    VERSION_STR_A  ", " ARCH_NAME_A  "\0"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation",  0x409,  1200  // (English, Unicode)
+    }
 }
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
@@ -134,7 +186,6 @@ IDD_OPTIONS  DIALOGEX 10, 10, 200, 199
     PUSHBUTTON      "", IDC_CANCEL,            143, 178,  50, 14, WS_TABSTOP
 }
 
-IDR_RT_MANIFEST         RT_MANIFEST             "HashCheck.manifest"
 IDI_FILETYPE            ICON                    "HashCheck.ico"
 
 #include "HashCheckTranslations.rc"

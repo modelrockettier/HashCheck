@@ -6,25 +6,22 @@
  * Please refer to license.txt for details about distribution and modification.
  **/
 
-#ifndef __HASHCHECKOPTIONS_H__
-#define __HASHCHECKOPTIONS_H__
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <windows.h>
+#pragma once
 
 // Options struct
-typedef struct {
-	DWORD dwFlags;
-	DWORD dwFilterIndex;
-	DWORD dwMenuDisplay;
-	DWORD dwSaveEncoding;
-	LOGFONT lfFont;
-} HASHCHECKOPTIONS, *PHASHCHECKOPTIONS;
+
+struct HASHOPTIONS
+{
+    DWORD dwFlags;
+    DWORD dwFilterIndex;
+    DWORD dwMenuDisplay;
+    DWORD dwSaveEncoding;
+    LOGFONT lfFont;
+};
+typedef struct HASHOPTIONS HASHOPTIONS, *PHASHOPTIONS;
 
 // Options flags
+
 #define HCOF_FILTERINDEX  0x00000001  // The dwFilterIndex member is valid
 #define HCOF_MENUDISPLAY  0x00000002  // The dwMenuDisplay member is valid
 #define HCOF_SAVEENCODING 0x00000004  // The dwSaveEncoding member is valid
@@ -32,12 +29,8 @@ typedef struct {
 #define HCOF_ALL          0x0000000F
 
 // Public functions
-VOID __fastcall OptionsDialog( HWND hWndOwner, PHASHCHECKOPTIONS popt );
-VOID __fastcall OptionsLoad( PHASHCHECKOPTIONS popt );
-VOID __fastcall OptionsSave( PHASHCHECKOPTIONS popt );
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+void __fastcall OptionsDialog( HWND hWndOwner, PHASHOPTIONS popt );
+void __fastcall OptionsLoad( PHASHOPTIONS popt );
+void __fastcall OptionsSave( PHASHOPTIONS popt );
+bool  OptionsDelete ();

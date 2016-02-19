@@ -1,7 +1,5 @@
 #define IDC_STATIC                      -1
 
-#define IDR_RT_MANIFEST                 ISOLATIONAWARE_MANIFEST_RESOURCE_ID
-
 #define IDI_FILETYPE                    100
 
 // Controls common to multiple dialogs
@@ -14,6 +12,10 @@
 
 // Hash creation/save (context menu) dialog
 #define IDD_HASHSAVE                    200
+
+// custom embedded binary resources -- MUST be 255 OR LESS!
+#define IDC_EMBEDDED_CMD_RESID          230
+#define IDC_EMBEDDED_EXE_RESID          231
 
 // Hash calculation property sheet and controls
 #define IDD_HASHPROP                    300

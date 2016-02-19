@@ -6,20 +6,7 @@
  * Please refer to license.txt for details about distribution and modification.
  **/
 
-#ifndef __SETAPPID_H__
-#define __SETAPPID_H__
+#pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <windows.h>
-
-VOID WINAPI SetAppIDForWindow( HWND hWnd, BOOL fEnable );
-VOID WINAPI SetAppIDForProcess( );
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+void SetAppIDForWindow( HWND hWnd, BOOL fEnable );
+void SetAppIDForProcess();

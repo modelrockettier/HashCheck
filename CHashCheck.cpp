@@ -6,292 +6,271 @@
  * Please refer to license.txt for details about distribution and modification.
  **/
 
-#include "CHashCheck.hpp"
+#include "stdafx.h"
+#include "CHashCheck.h"
 #include "HashCheckUI.h"
 #include "HashCheckOptions.h"
 
 STDMETHODIMP CHashCheck::QueryInterface( REFIID riid, LPVOID *ppv )
 {
-	if (IsEqualIID(riid, IID_IUnknown))
-	{
-		*ppv = this;
-	}
-	else if (IsEqualIID(riid, IID_IShellExtInit))
-	{
-		*ppv = (LPSHELLEXTINIT)this;
-	}
-	else if (IsEqualIID(riid, IID_IContextMenu))
-	{
-		*ppv = (LPCONTEXTMENU)this;
-	}
-	else if (IsEqualIID(riid, IID_IShellPropSheetExt))
-	{
-		*ppv = (LPSHELLPROPSHEETEXT)this;
-	}
-	else if (IsEqualIID(riid, IID_IDropTarget))
-	{
-		*ppv = (LPDROPTARGET)this;
-	}
-	else
-	{
-		*ppv = NULL;
-		return(E_NOINTERFACE);
-	}
+         if (IsEqualIID( riid, IID_IUnknown           )) *ppv =                       this;
+    else if (IsEqualIID( riid, IID_IShellExtInit      )) *ppv = (LPSHELLEXTINIT)      this;
+    else if (IsEqualIID( riid, IID_IContextMenu       )) *ppv = (LPCONTEXTMENU)       this;
+    else if (IsEqualIID( riid, IID_IShellPropSheetExt )) *ppv = (LPSHELLPROPSHEETEXT) this;
+    else if (IsEqualIID( riid, IID_IDropTarget        )) *ppv = (LPDROPTARGET)        this;
+    else
+    {
+        *ppv = NULL;
+        return E_NOINTERFACE;
+    }
 
-	AddRef();
-	return(S_OK);
+    AddRef();
+    return S_OK;
 }
 
 STDMETHODIMP CHashCheck::Initialize( LPCITEMIDLIST pidlFolder, LPDATAOBJECT pdtobj, HKEY hkeyProgID )
 {
-	// We'll be needing a buffer, and let's double it just to be safe
-	TCHAR szPath[MAX_PATH << 1];
+    // We'll be needing a buffer, and let's double it just to be safe
 
-	// Make sure that we are working with a fresh list
-	SLRelease(m_hList);
-	m_hList = SLCreate();
+    TCHAR  szPath[ MAX_PATH << 1 ];
 
-	// This indent exists to facilitate diffing against the CmdOpen source
-	{
-		FORMATETC format = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-		STGMEDIUM medium;
+    // Make sure that we are working with a fresh list
 
-		if (!pdtobj || pdtobj->GetData(&format, &medium) != S_OK)
-			return(E_INVALIDARG);
+    SLRelease( m_hList );
+    m_hList = SLCreate(FALSE);
 
-		if (HDROP hDrop = (HDROP)GlobalLock(medium.hGlobal))
-		{
-			UINT uDrops = DragQueryFile(hDrop, -1, NULL, 0);
+    // This indent exists to facilitate diffing against the CmdOpen source
 
-			for (UINT uDrop = 0; uDrop < uDrops; ++uDrop)
-			{
-				if (DragQueryFile(hDrop, uDrop, szPath, countof(szPath)))
-				{
-					SLAddStringI(m_hList, szPath);
-				}
-			}
+    FORMATETC format = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+    STGMEDIUM medium;
 
-			GlobalUnlock(medium.hGlobal);
-		}
+    if (!pdtobj || pdtobj->GetData( &format, &medium ) != S_OK)
+        return E_INVALIDARG;
 
-		ReleaseStgMedium(&medium);
-	}
+    HDROP hDrop = (HDROP) GlobalLock( medium.hGlobal );
+
+    if (hDrop)
+    {
+        UINT uDrop, uDrops = DragQueryFile( hDrop, -1, NULL, 0 );
+
+        for (uDrop = 0; uDrop < uDrops; ++uDrop)
+        {
+            if (DragQueryFile( hDrop, uDrop, szPath, _countof( szPath )))
+                SLAddStringI( m_hList, szPath );
+        }
+
+        GlobalUnlock( medium.hGlobal );
+    }
+
+    ReleaseStgMedium( &medium );
 
 
-	// If there was any failure, the list would be empty...
-	return((SLCheck(m_hList)) ? S_OK : E_INVALIDARG);
+    // If there was any failure, the list would be empty...
+
+    return SLCheck( m_hList ) ? S_OK : E_INVALIDARG;
 }
 
 STDMETHODIMP CHashCheck::QueryContextMenu( HMENU hmenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags )
 {
-	if (uFlags & (CMF_DEFAULTONLY | CMF_NOVERBS))
-		return(MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, 0));
+    if (uFlags & (CMF_DEFAULTONLY | CMF_NOVERBS))
+        return MAKE_HRESULT( SEVERITY_SUCCESS, FACILITY_NULL, 0 );
 
-	// Ugly hack: work around a bug in Windows 5.x that causes a spurious
-	// separator to be added when invoking the context menu from the Start Menu
-	if (g_uWinVer < 0x0600 && !(uFlags & (0x20000 | CMF_EXPLORE)) && GetModuleHandleA("explorer.exe"))
-		return(MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, 0));
+    // Load the menu display settings
 
-	// Load the menu display settings
-	HASHCHECKOPTIONS opt;
-	opt.dwFlags = HCOF_MENUDISPLAY;
-	OptionsLoad(&opt);
+    HASHOPTIONS opt;  opt.dwFlags = HCOF_MENUDISPLAY;
 
-	// Do not show if the settings prohibit it
-	if (opt.dwMenuDisplay == 2 || (opt.dwMenuDisplay == 1 && !(uFlags & CMF_EXTENDEDVERBS)))
-		return(MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, 0));
+    OptionsLoad( &opt );
 
-	// Load the localized menu text
-	TCHAR szMenuText[MAX_STRINGMSG];
-	LoadString(g_hModThisDll, IDS_HS_MENUTEXT, szMenuText, countof(szMenuText));
+    // Do not show if the settings prohibit it
 
-	if (InsertMenu(hmenu, indexMenu, MF_STRING | MF_BYPOSITION, idCmdFirst, szMenuText))
-		return(MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, 1));
+    if (opt.dwMenuDisplay == 2 || (opt.dwMenuDisplay == 1 && !(uFlags & CMF_EXTENDEDVERBS)))
+        return MAKE_HRESULT( SEVERITY_SUCCESS, FACILITY_NULL, 0 );
 
-	return(MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, 0));
+    // Load the localized menu text
+
+    TCHAR  szMenuText[ MAX_STRINGMSG ];
+
+    LoadString( g_hModThisDll, IDS_HS_MENUTEXT, szMenuText, _countof( szMenuText ));
+
+    if (InsertMenu( hmenu, indexMenu, MF_STRING | MF_BYPOSITION, idCmdFirst, szMenuText ))
+        return MAKE_HRESULT( SEVERITY_SUCCESS, FACILITY_NULL, 1 );
+
+    return MAKE_HRESULT( SEVERITY_SUCCESS, FACILITY_NULL, 0 );
 }
 
 STDMETHODIMP CHashCheck::InvokeCommand( LPCMINVOKECOMMANDINFO pici )
 {
-	// Ignore string verbs (high word must be zero)
-	// The only valid command index is 0 (low word must be zero)
-	if (pici->lpVerb)
-		return(E_INVALIDARG);
+    // Ignore string verbs (high word must be zero)
+    // The only valid command index is 0 (low word must be zero)
 
-	// Hand things over to HashSave, where all the work is done...
-	HashSaveStart(pici->hwnd, m_hList);
+    if (pici->lpVerb)
+        return E_INVALIDARG;
 
-	// HaveSave has AddRef'ed and now owns our list
-	SLRelease(m_hList);
-	m_hList = NULL;
+    // Hand things over to HashSave, where all the work is done...
 
-	return(S_OK);
+    HashSaveStart( pici->hwnd, m_hList );
+
+    // HaveSave has AddRef'ed and now owns our list
+
+    SLRelease( m_hList );
+    m_hList = NULL;
+
+    return S_OK;
 }
 
 STDMETHODIMP CHashCheck::GetCommandString( UINT_PTR idCmd, UINT uFlags, UINT *pwReserved, LPSTR pszName, UINT cchMax )
 {
-	static const  CHAR szVerbA[] =  "cksum";
-	static const WCHAR szVerbW[] = L"cksum";
+    static const CString            strVerb(_T("cksum"));
+    static const CStringA strVerbA( strVerb );
+    static const CStringW strVerbW( strVerb );
 
-	if (idCmd != 0 || cchMax < countof(szVerbW))
-		return(E_INVALIDARG);
+    if (idCmd || cchMax < (UINT) strVerb.GetLength())
+        return E_INVALIDARG;
 
-	switch (uFlags)
-	{
-		// The help text (status bar text) should not contain any of the
-		// characters added for the menu access keys.
+    switch (uFlags)
+    {
+        case GCS_VERBA:
+        {
+            strcpy_s( (LPSTR) pszName, cchMax, strVerbA );
+            return S_OK;
+        }
 
-		case GCS_HELPTEXTA:
-		{
-			LoadStringA(g_hModThisDll, IDS_HS_MENUTEXT, (LPSTR)pszName, cchMax);
+        case GCS_VERBW:
+        {
+            wcscpy_s( (LPWSTR) pszName, cchMax, strVerbW );
+            return S_OK;
+        }
+    }
 
-			LPSTR lpszSrcA = (LPSTR)pszName;
-			LPSTR lpszDestA = (LPSTR)pszName;
+    // The help text (status bar text) should not contain any of the
+    // characters added for the menu access keys.
 
-			while (*lpszSrcA && *lpszSrcA != '(' && *lpszSrcA != '.')
-			{
-				if (*lpszSrcA != '&')
-				{
-					*lpszDestA = *lpszSrcA;
-					++lpszDestA;
-				}
+    switch (uFlags)
+    {
+        case GCS_HELPTEXTA:
+        {
+            CStringA strMenuTextA;
+            VERIFY(  strMenuTextA.LoadString( g_hModThisDll, IDS_HS_MENUTEXT ));
+                     strMenuTextA.Replace("&","");
+            strcpy_s( (LPSTR) pszName, cchMax, strMenuTextA );
+            return S_OK;
+        }
 
-				++lpszSrcA;
-			}
+        case GCS_HELPTEXTW:
+        {
+            CStringW strMenuTextW;
+            VERIFY(  strMenuTextW.LoadString( g_hModThisDll, IDS_HS_MENUTEXT ));
+                     strMenuTextW.Replace(L"&",L"");
+            wcscpy_s( (LPWSTR) pszName, cchMax, strMenuTextW );
+            return S_OK;
+        }
+    }
 
-			*lpszDestA = 0;
-			return(S_OK);
-		}
-
-		case GCS_HELPTEXTW:
-		{
-			LoadStringW(g_hModThisDll, IDS_HS_MENUTEXT, (LPWSTR)pszName, cchMax);
-
-			LPWSTR lpszSrcW = (LPWSTR)pszName;
-			LPWSTR lpszDestW = (LPWSTR)pszName;
-
-			while (*lpszSrcW && *lpszSrcW != L'(' && *lpszSrcW != L'.')
-			{
-				if (*lpszSrcW != L'&')
-				{
-					*lpszDestW = *lpszSrcW;
-					++lpszDestW;
-				}
-
-				++lpszSrcW;
-			}
-
-			*lpszDestW = 0;
-			return(S_OK);
-		}
-
-		case GCS_VERBA:
-		{
-			SSStaticCpyA((LPSTR)pszName, szVerbA);
-			return(S_OK);
-		}
-
-		case GCS_VERBW:
-		{
-			SSStaticCpyW((LPWSTR)pszName, szVerbW);
-			return(S_OK);
-		}
-	}
-
-	return(E_INVALIDARG);
+    return E_INVALIDARG;
 }
 
 STDMETHODIMP CHashCheck::AddPages( LPFNADDPROPSHEETPAGE pfnAddPage, LPARAM lParam )
 {
-	PROPSHEETPAGE psp;
-	psp.dwSize = sizeof(psp);
-	psp.dwFlags = PSP_USECALLBACK | PSP_USEREFPARENT | PSP_USETITLE;
-	psp.hInstance = g_hModThisDll;
-	psp.pszTemplate = MAKEINTRESOURCE(IDD_HASHPROP);
-	psp.pszTitle = MAKEINTRESOURCE(IDS_HP_TITLE);
-	psp.pfnDlgProc = HashPropDlgProc;
-	psp.lParam = (LPARAM)m_hList;
-	psp.pfnCallback = HashPropCallback;
-	psp.pcRefParent = (PUINT)&g_cRefThisDll;
+    PROPSHEETPAGE  psp;
 
-	if (ActivateManifest(FALSE))
-	{
-		psp.dwFlags |= PSP_USEFUSIONCONTEXT;
-		psp.hActCtx = g_hActCtx;
-	}
+    psp.dwSize      = sizeof(psp);
+    psp.dwFlags     = PSP_USECALLBACK | PSP_USEREFPARENT | PSP_USETITLE;
+    psp.hInstance   = g_hModThisDll;
+    psp.pszTemplate = MAKEINTRESOURCE(IDD_HASHPROP);
+    psp.pszTitle    = MAKEINTRESOURCE(IDS_HP_TITLE);
+    psp.pfnDlgProc  = HashPropDlgProc;
+    psp.lParam      = (LPARAM)m_hList;
+    psp.pfnCallback = HashPropCallback;
+    psp.pcRefParent = (UINT*) PointerToDllReference();
 
-	HPROPSHEETPAGE hPage = CreatePropertySheetPage(&psp);
+    if (ActivateManifest( FALSE ))
+    {
+        psp.dwFlags |= PSP_USEFUSIONCONTEXT;
+        psp.hActCtx = g_hActCtx;
+    }
 
-	if (hPage && !pfnAddPage(hPage, lParam))
-		DestroyPropertySheetPage(hPage);
+    HPROPSHEETPAGE  hPage  = CreatePropertySheetPage( &psp );
 
-	// HashProp has AddRef'ed and now owns our list
-	SLRelease(m_hList);
-	m_hList = NULL;
+    if (hPage && !pfnAddPage( hPage, lParam ))
+        DestroyPropertySheetPage( hPage );
 
-	return(S_OK);
+    // HashProp has AddRef'ed and now owns our list
+
+    SLRelease( m_hList );
+    m_hList = NULL;
+
+    return S_OK;
 }
 
 STDMETHODIMP CHashCheck::Drop( LPDATAOBJECT pdtobj, DWORD grfKeyState, POINTL pt, PDWORD pdwEffect )
 {
-	FORMATETC format = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-	STGMEDIUM medium;
+    FORMATETC format = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+    STGMEDIUM medium;
 
-	UINT uThreads = 0;
+    UINT uThreads = 0;
 
-	if (pdtobj && pdtobj->GetData(&format, &medium) == S_OK)
-	{
-		if (HDROP hDrop = (HDROP)GlobalLock(medium.hGlobal))
-		{
-			UINT uDrops = DragQueryFile(hDrop, -1, NULL, 0);
-			UINT cchPath;
-			LPTSTR lpszPath;
+    if (pdtobj && pdtobj->GetData( &format, &medium ) == S_OK)
+    {
+        if (HDROP hDrop = (HDROP) GlobalLock( medium.hGlobal ))
+        {
+            UINT uDrops = DragQueryFile( hDrop, -1, NULL, 0 );
+            UINT cchPath;
+            LPTSTR lpszPath;
 
-			// Reduce the likelihood of a race condition when trying to create
-			// an activation context by creating it before creating threads
-			ActivateManifest(FALSE);
+            // Reduce the likelihood of a race condition when trying to create
+            // an activation context by creating it before creating threads
 
-			for (UINT uDrop = 0; uDrop < uDrops; ++uDrop)
-			{
-				if ( (cchPath = DragQueryFile(hDrop, uDrop, NULL, 0)) &&
-				     (lpszPath = (LPTSTR)malloc((cchPath + 1) * sizeof(TCHAR))) )
-				{
-					InterlockedIncrement(&g_cRefThisDll);
+            ActivateManifest( FALSE );
 
-					HANDLE hThread;
+            for (UINT uDrop = 0; uDrop < uDrops; ++uDrop)
+            {
+                if (1
+                    && (cchPath = DragQueryFile( hDrop, uDrop, NULL, 0 ))
+                    && (lpszPath = (LPTSTR) malloc( (cchPath + 1) * sizeof( TCHAR )))
+                )
+                {
+                    IncrementDllReference();
 
-					if ( (DragQueryFile(hDrop, uDrop, lpszPath, cchPath + 1) == cchPath) &&
-					     (!(GetFileAttributes(lpszPath) & FILE_ATTRIBUTE_DIRECTORY)) &&
-					     (hThread = CreateThreadCRT(HashVerifyThread, lpszPath)) )
-					{
-						// The thread should free lpszPath, not us
-						CloseHandle(hThread);
-						++uThreads;
-					}
-					else
-					{
-						free(lpszPath);
-						InterlockedDecrement(&g_cRefThisDll);
-					}
-				}
-			}
+                    HANDLE  hThread;
 
-			GlobalUnlock(medium.hGlobal);
-		}
+                    if (1
+                        && DragQueryFile( hDrop, uDrop, lpszPath, cchPath+1 ) == cchPath
+                        && !(GetFileAttributes( lpszPath ) & FILE_ATTRIBUTE_DIRECTORY)
+                        && (hThread = CreateWorkerThread( HashVerifyThread, lpszPath ))
+                    )
+                    {
+                        // The thread should free lpszPath, not us
 
-		ReleaseStgMedium(&medium);
-	}
+                        CloseHandle( hThread );
+                        ++uThreads;
+                    }
+                    else
+                    {
+                        // Something went wrong?
 
-	if (uThreads)
-	{
-		// DROPEFFECT_LINK would work here as well; it really doesn't matter
-		*pdwEffect = DROPEFFECT_COPY;
-		return(S_OK);
-	}
-	else
-	{
-		// We shouldn't ever be hitting this case
-		*pdwEffect = DROPEFFECT_NONE;
-		return(E_INVALIDARG);
-	}
+                        free( lpszPath );
+                        DecrementDllReference();
+                    }
+                }
+            }
+
+            GlobalUnlock( medium.hGlobal );
+        }
+
+        ReleaseStgMedium( &medium );
+    }
+
+    if (!uThreads)
+    {
+        // We shouldn't ever be hitting this case
+
+        *pdwEffect = DROPEFFECT_NONE;
+        ASSERT( false );
+        return E_INVALIDARG;
+    }
+
+    // DROPEFFECT_LINK would work here as well; it really doesn't matter
+
+    *pdwEffect = DROPEFFECT_COPY;
+    return S_OK;
 }
