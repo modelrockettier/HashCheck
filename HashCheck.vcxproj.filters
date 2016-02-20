@@ -1,0 +1,184 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{46f0c7e2-f806-434f-8682-97d197ea4d01}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{c1ce0cfd-1251-45ee-b779-b5af6fe8de12}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{de4e1b86-e3dc-4a77-85e4-b31f51ef917b}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="Libraries">
+      <UniqueIdentifier>{9f404fdd-b586-4797-ad64-c7df8d957a10}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\Header Files">
+      <UniqueIdentifier>{9de762ed-7c81-475a-912d-8be3fed18e6c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\Source Files">
+      <UniqueIdentifier>{05aeb4ce-1ff9-4132-9b1e-ef14fd3d2458}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CHashCheck.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CHashCheckClassFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="COvSeqFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HashCalc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HashCheckCommon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HashCheckOptions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RegHelpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SetAppID.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UnicodeHelpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\crc32.cpp">
+      <Filter>Libraries\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\IsFontAvailable.cpp">
+      <Filter>Libraries\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\SimpleList.cpp">
+      <Filter>Libraries\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\SimpleString.cpp">
+      <Filter>Libraries\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\WinHash.cpp">
+      <Filter>Libraries\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\Wow64.cpp">
+      <Filter>Libraries\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HashCheck.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HashProp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HashSave.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HashVerify.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CHashCheck.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CHashCheckClassFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="COvSeqFile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HashCalc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HashCheckCommon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HashCheckOptions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RegHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SetAppID.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UnicodeHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HashCheckResources.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HashCheckTranslations.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\crc16tab.h">
+      <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\crc32tab.h">
+      <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\SwapIntrinsics.h">
+      <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\crc32.h">
+      <Filter>Libraries\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\IsFontAvailable.h">
+      <Filter>Libraries\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\SimpleList.h">
+      <Filter>Libraries\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\SimpleString.h">
+      <Filter>Libraries\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\WinHash.h">
+      <Filter>Libraries\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\Wow64.h">
+      <Filter>Libraries\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dbgtrace.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="debug64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HashCheckUI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="product.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="HashCheck.def">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="HashCheck.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="HashCheckTranslations.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

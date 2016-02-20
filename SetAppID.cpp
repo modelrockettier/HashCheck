@@ -35,7 +35,7 @@ typedef HRESULT (WINAPI *PFNSHGPSFW)( HWND hwnd, REFIID riid, void** ppv );
 
 void SetAppIDForWindow( HWND hWnd, BOOL fEnable )
 {
-   if (g_wWinVer >= WINNT_WIN7)
+   if (g_wWinVer >= 0x601) // WIN7
    {
       IPropertyStore *pps;
 
@@ -81,7 +81,7 @@ void SetAppIDForWindow( HWND hWnd, BOOL fEnable )
 
 void SetAppIDForProcess()
 {
-   if (g_wWinVer >= WINNT_WIN7)
+   if (g_wWinVer >= 0x0601) // WIN7
    {
       PFNSCPEAUMID pfnSetCurrentProcessExplicitAppUserModelID = (PFNSCPEAUMID)
          GetProcAddress(GetModuleHandleA("SHELL32.dll"), "SetCurrentProcessExplicitAppUserModelID");

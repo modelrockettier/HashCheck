@@ -1,11 +1,8 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HashCheck", "HashCheck.vcproj", "{DCAD938F-9032-4AF9-BA67-8C0CF309D986}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D666BB00-777A-4D10-8CFB-266C52047974} = {D666BB00-777A-4D10-8CFB-266C52047974}
-	EndProjectSection
-EndProject
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A3CCE2E5-7BD9-4381-9D92-BD06D96EA49B}"
 	ProjectSection(SolutionItems) = preProject
 		_Fish README.txt = _Fish README.txt
@@ -13,7 +10,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.txt = README.txt
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "_Uninstaller", "_Uninstaller\_Uninstaller.vcproj", "{D666BB00-777A-4D10-8CFB-266C52047974}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HashCheck", "HashCheck.vcxproj", "{DCAD938F-9032-4AF9-BA67-8C0CF309D986}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "_Uninstaller", "_Uninstaller\_Uninstaller.vcxproj", "{D666BB00-777A-4D10-8CFB-266C52047974}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
