@@ -5,3 +5,5 @@
 /Bin
 /Obj
 /installer/*.exe
+Release/
+Debug/
