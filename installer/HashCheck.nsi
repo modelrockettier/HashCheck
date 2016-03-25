@@ -5,8 +5,11 @@ SetCompressor /FINAL /SOLID lzma
 
 Unicode true
 
+; Updated by the VersionTool app
+!include "version_generated.nsh"
+
 Name "HashCheck"
-OutFile "HashCheckSetup.exe"
+OutFile "HashCheckSetup-${APP_VER}.exe"
 
 RequestExecutionLevel admin
 ManifestSupportedOS all
@@ -51,9 +54,6 @@ FunctionEnd
 !insertmacro MUI_LANGUAGE "Swedish"
 !insertmacro MUI_LANGUAGE "Turkish"
 !insertmacro MUI_LANGUAGE "Ukrainian"
-
-; Updated by the VersionTool app from data in
-!include "version_generated.nsh"
 
 VIProductVersion "${APP_VER}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "HashCheck Shell Extension"
