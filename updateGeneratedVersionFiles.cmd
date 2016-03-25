@@ -1,4 +1,6 @@
 @echo off
+rem Clean builds and runs the VersionTool.
+
 pushd "%~dp0"
 call "%VS120COMNTOOLS%\vsvars32"
 echo Building VersionTool
