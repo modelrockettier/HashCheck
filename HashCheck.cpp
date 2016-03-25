@@ -311,20 +311,15 @@ HRESULT Install( BOOL bCopyFile )
 				TCHAR szUninstall[MAX_PATH << 1];
 				wnsprintf(szUninstall, countof(szUninstall), TEXT("regsvr32.exe /u /i /n \"%s\""), lpszTargetPath);
 
-				static const TCHAR szURLFull[] = TEXT("http://code.kliu.org/hashcheck/");
-				TCHAR szURLBase[countof(szURLFull)];
-				SSStaticCpy(szURLBase, szURLFull);
-				szURLBase[21] = 0; // strlen("http://code.kliu.org/")
-
 				RegSetSZ(hKey, TEXT("DisplayIcon"), lpszTargetPath);
 				RegSetSZ(hKey, TEXT("DisplayName"), TEXT(HASHCHECK_NAME_STR) TEXT(ARCH_NAME_TAIL));
 				RegSetSZ(hKey, TEXT("DisplayVersion"), TEXT(HASHCHECK_VERSION_STR));
-				RegSetSZ(hKey, TEXT("HelpLink"), szURLFull);
+                RegSetSZ(hKey, TEXT("HelpLink"), TEXT(HASHCHECK_HELP_URL));
 				RegSetDW(hKey, TEXT("NoModify"), 1);
 				RegSetDW(hKey, TEXT("NoRepair"), 1);
-				RegSetSZ(hKey, TEXT("Publisher"), TEXT("Kai Liu"));
+                RegSetSZ(hKey, TEXT("Publisher"), TEXT(HASHCHECK_PUBLISHER));
 				RegSetSZ(hKey, TEXT("UninstallString"), szUninstall);
-				RegSetSZ(hKey, TEXT("URLInfoAbout"), szURLBase);
+                RegSetSZ(hKey, TEXT("URLInfoAbout"), TEXT(HASHCHECK_ABOUT_URL));
 				RegCloseKey(hKey);
 			}
 

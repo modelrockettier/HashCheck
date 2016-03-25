@@ -5,8 +5,11 @@ SetCompressor /FINAL /SOLID lzma
 
 Unicode true
 
+; Updated by the VersionTool app
+!include "version_generated.nsh"
+
 Name "HashCheck"
-OutFile "HashCheckSetup.exe"
+OutFile "HashCheckSetup-${APP_VER}.exe"
 
 RequestExecutionLevel admin
 ManifestSupportedOS all
@@ -52,15 +55,15 @@ FunctionEnd
 !insertmacro MUI_LANGUAGE "Turkish"
 !insertmacro MUI_LANGUAGE "Ukrainian"
 
-VIProductVersion "2.2.2.5"
+VIProductVersion "${APP_VER}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "HashCheck Shell Extension"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "2.2.2.5"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "Comments" "Installer distributed from https://github.com/chappjc/HashCheck/releases"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "${APP_VER}"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "Comments" "Installer distributed from ${APP_RELEASES_URL}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" ""
 VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalTrademarks" ""
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "Copyright © Kai Liu and Christopher Gurnee."
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "Installer (x86/x64) from https://github.com/chappjc/HashCheck/releases"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "2.2.2.5"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "Copyright © ${APP_AUTHORS}."
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "HashCheck installer (x86/x64), distributed from ${APP_RELEASES_URL}"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${APP_VER}"
 
 ; With solid compression, files that are required before the
 ; actual installation should be stored first in the data block,
@@ -73,7 +76,7 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "2.2.2.5"
 Section
 
     GetTempFileName $0
-    File /oname=$0 ..\bin.x86-32\HashCheck.dll
+    File /oname=$0 ..\bin\Win32\Release\HashCheck.dll
     ExecWait 'regsvr32 /i /n /s "$0"'
     IfErrors abort_on_error
     Delete $0
@@ -94,7 +97,7 @@ Section
     ${If} ${RunningX64}
         ${DisableX64FSRedirection}
 
-        File /oname=$0 ..\bin.x86-64\HashCheck.dll
+        File /oname=$0 ..\bin\x64\Release\HashCheck.dll
         ExecWait 'regsvr32 /i /n /s "$0"'
         IfErrors abort_on_error
         Delete $0
