@@ -52,17 +52,17 @@ FunctionEnd
 !insertmacro MUI_LANGUAGE "Turkish"
 !insertmacro MUI_LANGUAGE "Ukrainian"
 
-!define APP_VER 3.0.1.0
-!define REPO https://github.com/modelrockettier/HashCheck
+; Updated by the VersionTool app from data in
+!include "version_generated.nsh"
 
 VIProductVersion "${APP_VER}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "HashCheck Shell Extension"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "${APP_VER}"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "Comments" "Installer distributed from ${REPO}/releases"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "Comments" "Installer distributed from ${APP_RELEASES_URL}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" ""
 VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalTrademarks" ""
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "Copyright © Kai Liu, Christopher Gurnee, David B. Trout, Tim Schlueter."
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "HashCheck installer (x86/x64), distributed from ${REPO}/releases"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "Copyright © ${APP_AUTHORS}."
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "HashCheck installer (x86/x64), distributed from ${APP_RELEASES_URL}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${APP_VER}"
 
 ; With solid compression, files that are required before the
