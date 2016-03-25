@@ -52,15 +52,18 @@ FunctionEnd
 !insertmacro MUI_LANGUAGE "Turkish"
 !insertmacro MUI_LANGUAGE "Ukrainian"
 
-VIProductVersion "2.2.2.5"
+!define APP_VER 3.0.1.0
+!define REPO https://github.com/modelrockettier/HashCheck
+
+VIProductVersion "${APP_VER}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "HashCheck Shell Extension"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "2.2.2.5"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "Comments" "Installer distributed from https://github.com/chappjc/HashCheck/releases"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "${APP_VER}"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "Comments" "Installer distributed from ${REPO}/releases"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" ""
 VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalTrademarks" ""
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "Copyright © Kai Liu and Christopher Gurnee."
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "Installer (x86/x64) from https://github.com/chappjc/HashCheck/releases"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "2.2.2.5"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "Copyright © Kai Liu, Christopher Gurnee, David B. Trout, Tim Schlueter."
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "HashCheck installer (x86/x64), distributed from ${REPO}/releases"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${APP_VER}"
 
 ; With solid compression, files that are required before the
 ; actual installation should be stored first in the data block,
